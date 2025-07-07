@@ -1,0 +1,286 @@
+/**
+ * ObfuscatedOrderbook.compact
+ * SilentLedger - Midnight Mini DApp Hackathon
+ * 
+ * This smart contract implements a privacy-preserving orderbook
+ * that requires asset ownership verification before sell orders
+ * can be placed, preventing short selling.
+ */
+
+import "./AssetVerification.compact";
+
+contract ObfuscatedOrderbook {
+    // Order types
+    enum OrderType { Buy, Sell }
+    
+    // Order status
+    enum OrderStatus { Open, Filled, Cancelled }
+    
+    // Order structure with privacy considerations
+    struct Order {
+        bytes32 id;           // Unique order ID (public)
+        address trader;       // Address of the trader (private)
+        OrderType orderType;  // Buy or sell (public)
+        bytes32 assetId;      // Asset identifier (public)
+        uint256 price;        // Price per unit (public)
+        uint256 amount;       // Order amount (public)
+        uint256 filled;       // Amount filled so far (public)
+        OrderStatus status;   // Order status (public)
+        uint64 timestamp;     // Order creation timestamp (public)
+        bytes32 verificationId; // Required for sell orders (public)
+    }
+    
+    // State variables
+    AssetVerification private assetVerification;
+    
+    // Orders storage
+    mapping(bytes32 => Order) private orders;
+    mapping(bytes32 => bytes32[]) private assetBuyOrders;
+    mapping(bytes32 => bytes32[]) private assetSellOrders;
+    
+    // Events with privacy considerations
+    event OrderPlaced(bytes32 indexed orderId, OrderType indexed orderType, bytes32 indexed assetId, uint256 price, uint256 amount);
+    event OrderFilled(bytes32 indexed orderId, uint256 filledAmount, uint256 remainingAmount);
+    event OrderCancelled(bytes32 indexed orderId);
+    
+    // Modifiers
+    modifier onlyTrader(bytes32 orderId) {
+        require(orders[orderId].trader == msg.sender, "Not order trader");
+        _;
+    }
+    
+    /**
+     * Constructor
+     */
+    constructor(address verificationContractAddress) {
+        assetVerification = AssetVerification(verificationContractAddress);
+    }
+    
+    /**
+     * Place a new order
+     * For sell orders, requires verification of asset ownership
+     */
+    function placeOrder(
+        OrderType orderType,
+        bytes32 assetId,
+        uint256 price,
+        uint256 amount,
+        bytes32 verificationId
+    ) external returns (bytes32 orderId) {
+        require(price > 0, "Price must be positive");
+        require(amount > 0, "Amount must be positive");
+        
+        // For sell orders, verify ownership
+        if (orderType == OrderType.Sell) {
+            // Check if verification is valid
+            (bool isValid, ) = assetVerification.checkVerification(msg.sender, assetId, verificationId);
+            require(isValid, "Invalid or expired ownership verification");
+        }
+        
+        // Generate order ID
+        orderId = keccak256(abi.encodePacked(msg.sender, assetId, price, amount, block.timestamp));
+        
+        // Create order
+        orders[orderId] = Order({
+            id: orderId,
+            trader: msg.sender,
+            orderType: orderType,
+            assetId: assetId,
+            price: price,
+            amount: amount,
+            filled: 0,
+            status: OrderStatus.Open,
+            timestamp: uint64(block.timestamp),
+            verificationId: orderType == OrderType.Sell ? verificationId : bytes32(0)
+        });
+        
+        // Add to appropriate list
+        if (orderType == OrderType.Buy) {
+            assetBuyOrders[assetId].push(orderId);
+        } else {
+            assetSellOrders[assetId].push(orderId);
+        }
+        
+        // Try to match the order immediately
+        matchOrder(orderId);
+        
+        // Emit event
+        emit OrderPlaced(orderId, orderType, assetId, price, amount);
+        
+        return orderId;
+    }
+    
+    /**
+     * Cancel an existing order
+     * Only the original trader can cancel their order
+     */
+    function cancelOrder(bytes32 orderId) external onlyTrader(orderId) {
+        Order storage order = orders[orderId];
+        require(order.status == OrderStatus.Open, "Order not open");
+        
+        // Update order status
+        order.status = OrderStatus.Cancelled;
+        
+        // Emit event
+        emit OrderCancelled(orderId);
+    }
+    
+    /**
+     * Match orders automatically
+     * This is a simplified implementation for the hackathon
+     */
+    function matchOrder(bytes32 orderId) internal {
+        Order storage order = orders[orderId];
+        
+        // Skip if order is not open
+        if (order.status != OrderStatus.Open) {
+            return;
+        }
+        
+        // Get the appropriate order list to match against
+        bytes32[] storage matchingOrders = order.orderType == OrderType.Buy
+            ? assetSellOrders[order.assetId]
+            : assetBuyOrders[order.assetId];
+        
+        // Iterate through potential matches
+        for (uint i = 0; i < matchingOrders.length && order.filled < order.amount; i++) {
+            bytes32 matchOrderId = matchingOrders[i];
+            Order storage matchOrder = orders[matchOrderId];
+            
+            // Skip if not open or doesn't match price
+            if (matchOrder.status != OrderStatus.Open) {
+                continue;
+            }
+            
+            // Check price matching
+            if ((order.orderType == OrderType.Buy && order.price >= matchOrder.price) ||
+                (order.orderType == OrderType.Sell && order.price <= matchOrder.price)) {
+                
+                // Calculate fill amount
+                uint256 fillAmount = min(
+                    order.amount - order.filled,
+                    matchOrder.amount - matchOrder.filled
+                );
+                
+                if (fillAmount > 0) {
+                    // Update order fill amounts
+                    order.filled += fillAmount;
+                    matchOrder.filled += fillAmount;
+                    
+                    // Update statuses if fully filled
+                    if (order.filled == order.amount) {
+                        order.status = OrderStatus.Filled;
+                    }
+                    
+                    if (matchOrder.filled == matchOrder.amount) {
+                        matchOrder.status = OrderStatus.Filled;
+                    }
+                    
+                    // Emit events
+                    emit OrderFilled(
+                        orderId, 
+                        fillAmount, 
+                        order.amount - order.filled
+                    );
+                    
+                    emit OrderFilled(
+                        matchOrderId, 
+                        fillAmount, 
+                        matchOrder.amount - matchOrder.filled
+                    );
+                }
+            }
+        }
+    }
+    
+    /**
+     * Get order details (public information only)
+     */
+    function getOrder(bytes32 orderId) 
+        external 
+        view 
+        returns (
+            bytes32 id,
+            OrderType orderType,
+            bytes32 assetId,
+            uint256 price,
+            uint256 amount,
+            uint256 filled,
+            OrderStatus status,
+            uint64 timestamp
+        ) 
+    {
+        Order storage order = orders[orderId];
+        return (
+            order.id,
+            order.orderType,
+            order.assetId,
+            order.price,
+            order.amount,
+            order.filled,
+            order.status,
+            order.timestamp
+        );
+    }
+    
+    /**
+     * Get order book for an asset
+     * Returns arrays of order IDs
+     */
+    function getOrderBook(bytes32 assetId) 
+        external 
+        view 
+        returns (bytes32[] memory buyOrders, bytes32[] memory sellOrders) 
+    {
+        // Filter to only include open orders
+        bytes32[] memory rawBuyOrders = assetBuyOrders[assetId];
+        bytes32[] memory rawSellOrders = assetSellOrders[assetId];
+        
+        // Count open buy orders
+        uint openBuyCount = 0;
+        for (uint i = 0; i < rawBuyOrders.length; i++) {
+            if (orders[rawBuyOrders[i]].status == OrderStatus.Open) {
+                openBuyCount++;
+            }
+        }
+        
+        // Count open sell orders
+        uint openSellCount = 0;
+        for (uint i = 0; i < rawSellOrders.length; i++) {
+            if (orders[rawSellOrders[i]].status == OrderStatus.Open) {
+                openSellCount++;
+            }
+        }
+        
+        // Create filtered arrays
+        buyOrders = new bytes32[](openBuyCount);
+        sellOrders = new bytes32[](openSellCount);
+        
+        // Fill buy orders array
+        uint buyIndex = 0;
+        for (uint i = 0; i < rawBuyOrders.length && buyIndex < openBuyCount; i++) {
+            if (orders[rawBuyOrders[i]].status == OrderStatus.Open) {
+                buyOrders[buyIndex] = rawBuyOrders[i];
+                buyIndex++;
+            }
+        }
+        
+        // Fill sell orders array
+        uint sellIndex = 0;
+        for (uint i = 0; i < rawSellOrders.length && sellIndex < openSellCount; i++) {
+            if (orders[rawSellOrders[i]].status == OrderStatus.Open) {
+                sellOrders[sellIndex] = rawSellOrders[i];
+                sellIndex++;
+            }
+        }
+        
+        return (buyOrders, sellOrders);
+    }
+    
+    /**
+     * Helper function to get minimum of two values
+     */
+    function min(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a < b ? a : b;
+    }
+}

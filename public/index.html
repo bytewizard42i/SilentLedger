@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SilentLedger | Front-Running Prevention Demo</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Deep space animated background -->
+    <div class="stars"></div>
+    <div class="nebula"></div>
+    <div class="shooting-star"></div>
+    
+    <header>
+        <div class="logo">
+            <h1>SilentLedger</h1>
+            <p class="tagline">Front-Running Prevention Demo</p>
+        </div>
+        <div class="wallet-status">
+            <div id="wallet-address">Not connected</div>
+            <button id="connect-wallet" class="btn primary">Connect Wallet</button>
+        </div>
+    </header>
+
+    <div class="comparison-header">
+        <h2>Front-Running Prevention Demonstration</h2>
+        <p>See how a privacy-preserving orderbook prevents front-running attacks compared to traditional transparent orderbooks.</p>
+    </div>
+
+    <main class="comparison-layout">
+        <!-- Left Side: Privacy-Preserving Orderbook -->
+        <div class="comparison-side">
+            <div class="side-header">
+                <h2>SilentLedger (Privacy-Preserving)</h2>
+                <p>Orders are obfuscated using Midnight ZKP technology</p>
+            </div>
+            
+            <section class="card ownership-verification">
+                <h3>Asset Ownership Verification</h3>
+                <p>Verify ownership without revealing balance</p>
+                <form id="verify-form-private">
+                    <div class="form-group">
+                        <label for="asset-select-private">Asset</label>
+                        <select id="asset-select-private" required>
+                            <option value="" disabled selected>Select asset</option>
+                            <option value="TOKEN-X">TOKEN-X</option>
+                            <option value="TOKEN-Y">TOKEN-Y</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="amount-input-private">Amount</label>
+                        <input type="number" id="amount-input-private" min="1" step="1" required placeholder="Enter amount">
+                    </div>
+                    <button type="submit" class="btn primary">Verify Ownership</button>
+                </form>
+                <div id="verification-result-private" class="result-container hidden">
+                    <div class="result-header">Verification Result</div>
+                    <div id="verification-status-private"></div>
+                    <div id="verification-id-private" class="verification-id"></div>
+                </div>
+            </section>
+
+            <section class="card orderbook">
+                <h3>Obfuscated Orderbook</h3>
+                <div class="tabs">
+                    <button class="tab-btn active" data-side="private" data-asset="TOKEN-X">TOKEN-X</button>
+                    <button class="tab-btn" data-side="private" data-asset="TOKEN-Y">TOKEN-Y</button>
+                </div>
+
+                <div class="orderbook-container">
+                    <div class="orderbook-header">
+                        <div class="price-header">Price</div>
+                        <div class="amount-header">Amount</div>
+                        <div class="total-header">Total</div>
+                    </div>
+
+                    <div class="asks-container">
+                        <h4>Sell Orders</h4>
+                        <div id="asks-private" class="orders"></div>
+                    </div>
+
+                    <div class="price-indicator">
+                        <span id="current-price-private">0.00</span>
+                    </div>
+
+                    <div class="bids-container">
+                        <h4>Buy Orders</h4>
+                        <div id="bids-private" class="orders"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card place-order">
+                <h3>Place Private Order</h3>
+                <form id="order-form-private">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="order-asset-select-private">Asset</label>
+                            <select id="order-asset-select-private" required>
+                                <option value="" disabled selected>Select asset</option>
+                                <option value="TOKEN-X">TOKEN-X</option>
+                                <option value="TOKEN-Y">TOKEN-Y</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="order-type-select-private">Order Type</label>
+                            <select id="order-type-select-private" required>
+                                <option value="" disabled selected>Select type</option>
+                                <option value="buy">Buy</option>
+                                <option value="sell">Sell</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="order-price-input-private">Price</label>
+                            <input type="number" id="order-price-input-private" min="0.0001" step="0.0001" required placeholder="Enter price">
+                        </div>
+                        <div class="form-group">
+                            <label for="order-amount-input-private">Amount</label>
+                            <input type="number" id="order-amount-input-private" min="1" step="1" required placeholder="Enter amount">
+                        </div>
+                    </div>
+
+                    <div id="verification-id-container-private" class="form-group hidden">
+                        <label for="verification-id-input-private">Verification ID</label>
+                        <input type="text" id="verification-id-input-private" placeholder="Required for sell orders">
+                        <small class="helper-text">Verify your ownership first</small>
+                    </div>
+
+                    <button type="submit" class="btn primary">Place Order</button>
+                </form>
+                <div id="order-result-private" class="result-container hidden">
+                    <div class="result-header">Order Result</div>
+                    <div id="order-status-private"></div>
+                    <div id="order-id-private" class="order-id"></div>
+                </div>
+            </section>
+
+            <section class="card front-run-demo">
+                <h3>Front-Running Simulation</h3>
+                <p>Attempt to front-run another user's pending order</p>
+                <div class="sim-control">
+                    <div id="pending-order-private" class="pending-order">
+                        <div class="order-label">Pending Order (Visible Only to User):</div>
+                        <div class="pending-order-details">No pending orders</div>
+                    </div>
+                    <button id="attempt-frontrun-private" class="btn warning" disabled>Attempt Front-Run</button>
+                    <div id="frontrun-result-private" class="frontrun-result"></div>
+                </div>
+            </section>
+        </div>
+        
+        <!-- Right Side: Traditional Orderbook -->
+        <div class="comparison-side">
+            <div class="side-header">
+                <h2>Traditional Orderbook</h2>
+                <p>Orders are transparent and publicly visible</p>
+            </div>
+            
+            <section class="card ownership-verification">
+                <h3>Asset Balance Check</h3>
+                <p>Balance check is public and visible to all users</p>
+                <form id="verify-form-public">
+                    <div class="form-group">
+                        <label for="asset-select-public">Asset</label>
+                        <select id="asset-select-public" required>
+                            <option value="" disabled selected>Select asset</option>
+                            <option value="TOKEN-X">TOKEN-X</option>
+                            <option value="TOKEN-Y">TOKEN-Y</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="amount-input-public">Amount</label>
+                        <input type="number" id="amount-input-public" min="1" step="1" required placeholder="Enter amount">
+                    </div>
+                    <button type="submit" class="btn secondary">Check Balance</button>
+                </form>
+                <div id="verification-result-public" class="result-container hidden">
+                    <div class="result-header">Balance Check Result</div>
+                    <div id="verification-status-public"></div>
+                    <div class="warning-text">Note: This balance check is visible to everyone!</div>
+                </div>
+            </section>
+
+            <section class="card orderbook">
+                <h3>Transparent Orderbook</h3>
+                <div class="tabs">
+                    <button class="tab-btn active" data-side="public" data-asset="TOKEN-X">TOKEN-X</button>
+                    <button class="tab-btn" data-side="public" data-asset="TOKEN-Y">TOKEN-Y</button>
+                </div>
+
+                <div class="orderbook-container">
+                    <div class="orderbook-header">
+                        <div class="price-header">Price</div>
+                        <div class="amount-header">Amount</div>
+                        <div class="total-header">Total</div>
+                    </div>
+
+                    <div class="asks-container">
+                        <h4>Sell Orders</h4>
+                        <div id="asks-public" class="orders"></div>
+                    </div>
+
+                    <div class="price-indicator">
+                        <span id="current-price-public">0.00</span>
+                    </div>
+
+                    <div class="bids-container">
+                        <h4>Buy Orders</h4>
+                        <div id="bids-public" class="orders"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card place-order">
+                <h3>Place Public Order</h3>
+                <form id="order-form-public">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="order-asset-select-public">Asset</label>
+                            <select id="order-asset-select-public" required>
+                                <option value="" disabled selected>Select asset</option>
+                                <option value="TOKEN-X">TOKEN-X</option>
+                                <option value="TOKEN-Y">TOKEN-Y</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="order-type-select-public">Order Type</label>
+                            <select id="order-type-select-public" required>
+                                <option value="" disabled selected>Select type</option>
+                                <option value="buy">Buy</option>
+                                <option value="sell">Sell</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="order-price-input-public">Price</label>
+                            <input type="number" id="order-price-input-public" min="0.0001" step="0.0001" required placeholder="Enter price">
+                        </div>
+                        <div class="form-group">
+                            <label for="order-amount-input-public">Amount</label>
+                            <input type="number" id="order-amount-input-public" min="1" step="1" required placeholder="Enter amount">
+                        </div>
+                    </div>
+
+                    <div class="form-group public-order-warning">
+                        <div class="warning-text">⚠️ Warning: Order details will be visible to everyone before execution!</div>
+                    </div>
+
+                    <button type="submit" class="btn secondary">Place Order</button>
+                </form>
+                <div id="order-result-public" class="result-container hidden">
+                    <div class="result-header">Order Result</div>
+                    <div id="order-status-public"></div>
+                    <div id="order-id-public" class="order-id"></div>
+                </div>
+            </section>
+
+            <section class="card front-run-demo">
+                <h3>Front-Running Simulation</h3>
+                <p>Attempt to front-run another user's pending order</p>
+                <div class="sim-control">
+                    <div id="pending-order-public" class="pending-order">
+                        <div class="order-label">Pending Order (Visible to Everyone):</div>
+                        <div class="pending-order-details">No pending orders</div>
+                    </div>
+                    <button id="attempt-frontrun-public" class="btn warning" disabled>Attempt Front-Run</button>
+                    <div id="frontrun-result-public" class="frontrun-result"></div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <section class="card simulation-controls">
+        <h2>Simulation Controls</h2>
+        <div class="sim-buttons">
+            <button id="create-pending-order" class="btn primary">Create Pending Order</button>
+            <button id="reset-simulation" class="btn secondary">Reset Simulation</button>
+        </div>
+        <div class="sim-explanation">
+            <h3>What is Front-Running?</h3>
+            <p>Front-running is when someone sees a pending order and jumps ahead of it, exploiting the knowledge of that order for profit.</p>
+            <p>In traditional orderbooks, all pending orders are visible, making them vulnerable to front-running. In privacy-preserving orderbooks like SilentLedger, order details are obfuscated using zero-knowledge proofs, preventing front-running attacks.</p>
+        </div>
+    </section>
+
+    <footer>
+        <div class="footer-content">
+            <p>SilentLedger - Midnight Mini DApp Hackathon</p>
+            <p>Powered by Midnight blockchain technology</p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
