@@ -3,30 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SilentLedger | Front-Running and short-selling Prevention Demo</title>
+    <title>SilentLedger - Privacy-Preserving Orderbook</title>
+    <meta name="description" content="A demonstration of privacy-preserving orderbook technology using Midnight blockchain's zero-knowledge proofs and commitment schemes to prevent front-running attacks while maintaining market transparency.">
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap">
 </head>
 <body>
     <!-- Deep space animated background -->
     <div class="stars"></div>
-    <div class="nebula"></div>
-    <div class="shooting-star"></div>
+    <div id="space-background"></div>
     
     <header>
-        <div class="logo">
-            <h1>SilentLedger</h1>
-            <p class="tagline">Front-Running Prevention Demo</p>
-        </div>
-        <div class="wallet-status">
-            <div id="wallet-address">Not connected</div>
-            <button id="connect-wallet" class="btn primary">Connect Wallet</button>
-        </div>
+        <div class="logo">SilentLedger</div>
+        <h1>Privacy-Preserving Orderbook</h1>
+        <p class="subtitle">Built on <span class="midnight">Midnight</span> Blockchain</p>
     </header>
+    
+    <!-- Guided Demo Tour -->
+    <div class="guided-tour">
+        <h3>🚀 Guided Demo Tour</h3>
+        <p>Follow these steps to see the privacy benefits of SilentLedger in action:</p>
+        
+        <div class="tour-steps">
+            <div class="tour-step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h4>Connect Your Wallet</h4>
+                    <p>First, connect to the mock wallet to access your assets:</p>
+                    <div class="cli-suggestion" data-command="connect admin">connect admin</div>
+                </div>
+            </div>
+            
+            <div class="tour-step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h4>Check Your Balance</h4>
+                    <p>View the available assets in your wallet:</p>
+                    <div class="cli-suggestion" data-command="balance">balance</div>
+                </div>
+            </div>
+            
+            <div class="tour-step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h4>Place an Order on Both Books</h4>
+                    <p>Place the same order on both private and public orderbooks:</p>
+                    <div class="cli-suggestion" data-command="order private buy TOKEN-X 5.75 50">order private buy TOKEN-X 5.75 50</div>
+                    <p class="observation">👁️ <em>Notice how the order appears as a cryptographic commitment on the private side!</em></p>
+                    <div class="cli-suggestion" data-command="order public buy TOKEN-X 5.75 50">order public buy TOKEN-X 5.75 50</div>
+                    <p class="observation">👁️ <em>On the public side, all order details are visible to everyone.</em></p>
+                </div>
+            </div>
+            
+            <div class="tour-step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h4>Try Front-Running Simulation</h4>
+                    <p>Create a pending order and try to front-run it on both sides:</p>
+                    <div class="cli-suggestion" data-command="pendingorder public buy TOKEN-Y 6.25 100">pendingorder public buy TOKEN-Y 6.25 100</div>
+                    <div class="cli-suggestion" data-command="frontrun public">frontrun public</div>
+                    <p class="observation">❌ <em>Front-running succeeds on public orderbooks!</em></p>
+                    <div class="cli-suggestion" data-command="frontrun private">frontrun private</div>
+                    <p class="observation">✅ <em>Front-running fails on private orderbooks - your trades are protected!</em></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- CLI Interface -->
+    <section class="cli-container">
+        <div class="cli-header">
+            <h3>Command Line Interface</h3>
+            <div class="cli-toggle">CLI <span id="cli-status">ON</span></div>
+        </div>
+        <div class="cli-terminal">
+            <div class="cli-output" id="cli-output">Welcome to SilentLedger CLI. Type 'help' for available commands.</div>
+            <div class="cli-input-line">
+                <span class="cli-prompt">$</span>
+                <input type="text" id="cli-input" placeholder="Enter command..." autocomplete="off">
+                <button id="cli-submit">Run</button>
+            </div>
+        </div>
+        <div class="cli-help">
+            <details>
+                <summary>Available Commands</summary>
+                <ul>
+                    <li><code>connect [user]</code> - Connect wallet (admin, user1, user2)</li>
+                    <li><code>balance [asset]</code> - Check asset balance</li>
+                    <li><code>verify [asset] [amount]</code> - Verify asset ownership</li>
+                    <li><code>order [side] [type] [asset] [price] [amount]</code> - Place order (side: private/public)</li>
+                    <li><code>frontrun [side]</code> - Attempt front-running (side: private/public)</li>
+                    <li><code>pendingorder [side] [type] [asset] [price] [amount]</code> - Create pending order for simulation</li>
+                    <li><code>reset</code> - Reset simulation</li>
+                    <li><code>clear</code> - Clear CLI output</li>
+                    <li><code>help</code> - Show available commands</li>
+                </ul>
+            </details>
+        </div>
+    </section>
 
     <div class="comparison-header">
         <h2>Front-Running Prevention Demonstration</h2>
         <p>See how a privacy-preserving orderbook prevents front-running attacks compared to traditional transparent orderbooks.</p>
+        <div class="explanation-block">
+            <h4>How Privacy Protects Against Front-Running</h4>
+            <div class="explanation-content">
+                <div class="explanation-column">
+                    <h5>Private Orderbook (Midnight Technology)</h5>
+                    <ul>
+                        <li><strong>Order Commitment:</strong> Orders are stored as cryptographic commitments, hiding price, amount, and direction</li>
+                        <li><strong>Zero-Knowledge Proofs:</strong> Verify order validity without revealing sensitive details</li>
+                        <li><strong>Front-Running Protection:</strong> Attackers cannot see order details to place strategic orders ahead of yours</li>
+                        <li><strong>Privacy-Preserving:</strong> Balances and trading activity remain private while ensuring market integrity</li>
+                    </ul>
+                </div>
+                <div class="explanation-column">
+                    <h5>Public Orderbook (Traditional DEX)</h5>
+                    <ul>
+                        <li><strong>Transparent Orders:</strong> All order details (price, amount, direction) are fully visible</li>
+                        <li><strong>Public Verification:</strong> Anyone can see and analyze the entire orderbook</li>
+                        <li><strong>Front-Running Risk:</strong> Attackers can see pending orders and place their own orders to benefit</li>
+                        <li><strong>No Privacy:</strong> All trading strategies and positions are exposed to market observers</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
     </div>
 
     <main class="comparison-layout">
@@ -298,5 +399,6 @@
     </footer>
 
     <script src="app.js"></script>
+    <script src="cli.js"></script>
 </body>
 </html>

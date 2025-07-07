@@ -28,52 +28,98 @@ const domElements = {
   walletAddress: document.getElementById('wallet-address'),
   connectWalletBtn: document.getElementById('connect-wallet'),
   
+  // Private side (SilentLedger)
   // Verification form
-  verifyForm: document.getElementById('verify-form'),
-  assetSelect: document.getElementById('asset-select'),
-  amountInput: document.getElementById('amount-input'),
-  verificationResult: document.getElementById('verification-result'),
-  verificationStatus: document.getElementById('verification-status'),
-  verificationId: document.getElementById('verification-id'),
+  verifyFormPrivate: document.getElementById('verify-form-private'),
+  assetSelectPrivate: document.getElementById('asset-select-private'),
+  amountInputPrivate: document.getElementById('amount-input-private'),
+  verificationResultPrivate: document.getElementById('verification-result-private'),
+  verificationStatusPrivate: document.getElementById('verification-status-private'),
+  verificationIdPrivate: document.getElementById('verification-id-private'),
+  
+  // Public side (Traditional)
+  // Verification form
+  verifyFormPublic: document.getElementById('verify-form-public'),
+  assetSelectPublic: document.getElementById('asset-select-public'),
+  amountInputPublic: document.getElementById('amount-input-public'),
+  verificationResultPublic: document.getElementById('verification-result-public'),
+  verificationStatusPublic: document.getElementById('verification-status-public'),
   
   // Orderbook
   tabButtons: document.querySelectorAll('.tab-btn'),
-  asksContainer: document.getElementById('asks'),
-  bidsContainer: document.getElementById('bids'),
-  currentPrice: document.getElementById('current-price'),
+  asksContainerPrivate: document.getElementById('asks-private'),
+  bidsContainerPrivate: document.getElementById('bids-private'),
+  currentPricePrivate: document.getElementById('current-price-private'),
+  asksContainerPublic: document.getElementById('asks-public'),
+  bidsContainerPublic: document.getElementById('bids-public'),
+  currentPricePublic: document.getElementById('current-price-public'),
   
-  // Order form
-  orderForm: document.getElementById('order-form'),
-  orderAssetSelect: document.getElementById('order-asset-select'),
-  orderTypeSelect: document.getElementById('order-type-select'),
-  orderPriceInput: document.getElementById('order-price-input'),
-  orderAmountInput: document.getElementById('order-amount-input'),
-  verificationIdContainer: document.getElementById('verification-id-container'),
-  verificationIdInput: document.getElementById('verification-id-input'),
-  orderResult: document.getElementById('order-result'),
-  orderStatus: document.getElementById('order-status'),
-  orderId: document.getElementById('order-id')
+  // Order form - Private
+  orderFormPrivate: document.getElementById('order-form-private'),
+  orderAssetSelectPrivate: document.getElementById('order-asset-select-private'),
+  orderTypeSelectPrivate: document.getElementById('order-type-select-private'),
+  orderPriceInputPrivate: document.getElementById('order-price-input-private'),
+  orderAmountInputPrivate: document.getElementById('order-amount-input-private'),
+  verificationIdContainerPrivate: document.getElementById('verification-id-container-private'),
+  verificationIdInputPrivate: document.getElementById('verification-id-input-private'),
+  orderResultPrivate: document.getElementById('order-result-private'),
+  orderStatusPrivate: document.getElementById('order-status-private'),
+  orderIdPrivate: document.getElementById('order-id-private'),
+  
+  // Order form - Public
+  orderFormPublic: document.getElementById('order-form-public'),
+  orderAssetSelectPublic: document.getElementById('order-asset-select-public'),
+  orderTypeSelectPublic: document.getElementById('order-type-select-public'),
+  orderPriceInputPublic: document.getElementById('order-price-input-public'),
+  orderAmountInputPublic: document.getElementById('order-amount-input-public'),
+  orderResultPublic: document.getElementById('order-result-public'),
+  orderStatusPublic: document.getElementById('order-status-public'),
+  orderIdPublic: document.getElementById('order-id-public'),
+  
+  // Simulation controls
+  pendingOrderPrivate: document.getElementById('pending-order-private'),
+  pendingOrderPublic: document.getElementById('pending-order-public'),
+  attemptFrontrunPrivate: document.getElementById('attempt-frontrun-private'),
+  attemptFrontrunPublic: document.getElementById('attempt-frontrun-public'),
+  frontrunResultPrivate: document.getElementById('frontrun-result-private'),
+  frontrunResultPublic: document.getElementById('frontrun-result-public'),
+  createPendingOrderBtn: document.getElementById('create-pending-order'),
+  resetSimulationBtn: document.getElementById('reset-simulation')
 };
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
   // Set up event listeners
   domElements.connectWalletBtn.addEventListener('click', connectWallet);
-  domElements.verifyForm.addEventListener('submit', handleVerification);
-  domElements.orderForm.addEventListener('submit', handleOrderSubmission);
-  domElements.orderTypeSelect.addEventListener('change', toggleVerificationIdField);
+  
+  // Private side verification and orders
+  domElements.verifyFormPrivate.addEventListener('submit', (e) => handleVerification(e, 'private'));
+  domElements.orderFormPrivate.addEventListener('submit', (e) => handleOrderSubmission(e, 'private'));
+  domElements.orderTypeSelectPrivate.addEventListener('change', () => toggleVerificationIdField('private'));
+  
+  // Public side verification and orders
+  domElements.verifyFormPublic.addEventListener('submit', (e) => handleVerification(e, 'public'));
+  domElements.orderFormPublic.addEventListener('submit', (e) => handleOrderSubmission(e, 'public'));
   
   // Tab switching
   domElements.tabButtons.forEach(button => {
     button.addEventListener('click', () => {
       const asset = button.dataset.asset;
-      setActiveAsset(asset);
+      const side = button.dataset.side;
+      setActiveAsset(asset, side);
     });
   });
   
+  // Simulation controls
+  domElements.createPendingOrderBtn.addEventListener('click', createPendingOrder);
+  domElements.resetSimulationBtn.addEventListener('click', resetSimulation);
+  domElements.attemptFrontrunPrivate.addEventListener('click', () => attemptFrontrun('private'));
+  domElements.attemptFrontrunPublic.addEventListener('click', () => attemptFrontrun('public'));
+  
   // Load initial data
   checkWalletConnection();
-  loadOrderbook('TOKEN-X');
+  loadOrderbook('TOKEN-X', 'private');
+  loadOrderbook('TOKEN-X', 'public');
 });
 
 // Wallet Connection
@@ -468,6 +514,154 @@ function showNotification(message, type = 'info') {
       document.body.removeChild(notification);
     }, 300);
   }, 5000);
+}
+
+// Front-Running Simulation Functionality
+let pendingOrders = {
+  private: null,
+  public: null
+};
+
+// Create a pending order for simulation
+function createPendingOrder() {
+  // Random order details
+  const orderType = Math.random() > 0.5 ? 'buy' : 'sell';
+  const assetId = Math.random() > 0.5 ? 'TOKEN-X' : 'TOKEN-Y';
+  const price = parseFloat((Math.random() * 10 + 1).toFixed(4));
+  const amount = Math.floor(Math.random() * 100 + 10);
+  
+  // Create pending order objects
+  const order = {
+    id: `pending-${Date.now()}`,
+    orderType,
+    assetId,
+    price,
+    amount,
+    timestamp: new Date()
+  };
+  
+  // Set for both private and public sides
+  pendingOrders.private = { ...order };
+  pendingOrders.public = { ...order };
+  
+  // Update UI
+  displayPendingOrder('private', pendingOrders.private);
+  displayPendingOrder('public', pendingOrders.public);
+  
+  // Enable front-running buttons
+  domElements.attemptFrontrunPrivate.disabled = false;
+  domElements.attemptFrontrunPublic.disabled = false;
+  
+  // Show notification
+  showNotification('Pending order created for simulation', 'info');
+  
+  // If CLI is available, log to it
+  if (window.cliInterface) {
+    window.cliInterface.printToOutput('Pending order created for simulation:', 'info');
+    window.cliInterface.printToOutput(`${orderType.toUpperCase()} ${amount} ${assetId} @ ${price}`, 'info');
+    window.cliInterface.printToOutput('Private side: Order details hidden (only commitment visible)', 'info');
+    window.cliInterface.printToOutput('Public side: Order details fully visible', 'warning');
+  }
+}
+
+// Display pending order in UI
+function displayPendingOrder(side, order) {
+  if (!order) return;
+  
+  const container = side === 'private' ? domElements.pendingOrderPrivate : domElements.pendingOrderPublic;
+  const details = container.querySelector('.pending-order-details');
+  
+  if (side === 'private') {
+    // Private orderbook only shows a commitment hash, not the actual details
+    const hash = hashOrderData(order);
+    details.innerHTML = `<div>Commitment: ${hash.substring(0, 16)}...${hash.substring(hash.length - 8)}</div>
+                      <div>Type: <em>Hidden</em></div>
+                      <div>Asset: <em>Hidden</em></div>
+                      <div>Price: <em>Hidden</em></div>
+                      <div>Amount: <em>Hidden</em></div>`;
+  } else {
+    // Public orderbook shows all details
+    details.innerHTML = `<div>Order ID: ${order.id}</div>
+                      <div>Type: ${order.orderType.toUpperCase()}</div>
+                      <div>Asset: ${order.assetId}</div>
+                      <div>Price: ${order.price.toFixed(4)}</div>
+                      <div>Amount: ${order.amount}</div>`;
+  }
+}
+
+// Attempt to front-run an order
+async function attemptFrontrun(side) {
+  if (!pendingOrders[side]) {
+    showNotification(`No pending order to front-run on ${side} side`, 'warning');
+    return;
+  }
+  
+  const pendingOrder = pendingOrders[side];
+  const resultContainer = side === 'private' ? domElements.frontrunResultPrivate : domElements.frontrunResultPublic;
+  
+  // For private orders, front-running should fail because order details are hidden
+  if (side === 'private') {
+    resultContainer.innerHTML = `
+      <div class="attempt-status failure">Front-running failed!</div>
+      <div class="attempt-reason">Order details are hidden via commitment. Cannot determine price or direction to front-run.</div>
+    `;
+    
+    // If CLI is available, log to it
+    if (window.cliInterface) {
+      window.cliInterface.printToOutput('Front-running attempt on private side FAILED:', 'success');
+      window.cliInterface.printToOutput('Order details are hidden via commitment. Cannot determine price or direction to front-run.', 'info');
+    }
+  } else {
+    // For public orders, front-running succeeds because order details are visible
+    const frontRunPrice = pendingOrder.orderType === 'buy' ? 
+      pendingOrder.price * 1.001 : // Slightly higher price for buy orders
+      pendingOrder.price * 0.999; // Slightly lower price for sell orders
+    
+    resultContainer.innerHTML = `
+      <div class="attempt-status success">Front-running succeeded!</div>
+      <div class="attempt-reason">Order details were visible. Front-run with ${pendingOrder.orderType === 'buy' ? 'higher' : 'lower'} price of ${frontRunPrice.toFixed(4)}.</div>
+    `;
+    
+    // If CLI is available, log to it
+    if (window.cliInterface) {
+      window.cliInterface.printToOutput('Front-running attempt on public side SUCCEEDED:', 'error');
+      window.cliInterface.printToOutput(`Original order: ${pendingOrder.orderType.toUpperCase()} ${pendingOrder.amount} ${pendingOrder.assetId} @ ${pendingOrder.price.toFixed(4)}`, 'info');
+      window.cliInterface.printToOutput(`Front-run with: ${pendingOrder.orderType.toUpperCase()} ${pendingOrder.amount} ${pendingOrder.assetId} @ ${frontRunPrice.toFixed(4)}`, 'warning');
+    }
+  }
+}
+
+// Reset simulation
+function resetSimulation() {
+  // Clear pending orders
+  pendingOrders = {
+    private: null,
+    public: null
+  };
+  
+  // Reset UI
+  domElements.pendingOrderPrivate.querySelector('.pending-order-details').textContent = 'No pending orders';
+  domElements.pendingOrderPublic.querySelector('.pending-order-details').textContent = 'No pending orders';
+  domElements.frontrunResultPrivate.innerHTML = '';
+  domElements.frontrunResultPublic.innerHTML = '';
+  
+  // Disable front-running buttons
+  domElements.attemptFrontrunPrivate.disabled = true;
+  domElements.attemptFrontrunPublic.disabled = true;
+  
+  // Show notification
+  showNotification('Simulation reset', 'info');
+}
+
+// Helper function to simulate a hash of order data
+function hashOrderData(order) {
+  const data = `${order.orderType}|${order.assetId}|${order.price}|${order.amount}|${order.timestamp}`;
+  // This is not a real hash function, just for demo purposes
+  let hash = 'ox';
+  for (let i = 0; i < 64; i++) {
+    hash += '0123456789abcdef'[Math.floor(Math.random() * 16)];
+  }
+  return hash;
 }
 
 // Add notification styles
