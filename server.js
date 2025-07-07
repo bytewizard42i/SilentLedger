@@ -15,6 +15,7 @@ const PORT = process.env.PORT || 8080;
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/media', express.static(path.join(__dirname, 'media'))); // Serve media files
 
 // Basic health check route
 app.get('/api/health', (req, res) => {
