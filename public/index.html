@@ -9,11 +9,10 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap">
 </head>
 <body>
-    <!-- Video background wrapper -->
-    <div class="video-container">
-        <video id="video-background" autoplay muted loop playsinline preload="auto">
+    <!-- Video background with fallback -->
+    <div id="video-container">
+        <video id="bg-video" autoplay muted loop playsinline preload="auto" poster="#030622">
             <source src="/media/awe-silentLedger-background.mp4" type="video/mp4">
-            Your browser does not support the video tag.
         </video>
     </div>
     

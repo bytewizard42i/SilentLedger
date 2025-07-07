@@ -42,7 +42,8 @@
 
 body {
   font-family: var(--font-heading);
-  background-color: var(--background-color);
+  /* Removed background color to allow video to show */
+  background-color: transparent;
   color: var(--text-color);
   margin: 0;
   padding: 0;
@@ -111,18 +112,18 @@ body {
 }
 
 /* Video background */
-.video-container {
+#video-container {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: -1;
+  z-index: -1000;
   overflow: hidden;
-  background-color: #000; /* Fallback color */
+  background-color: transparent;
 }
 
-#video-background {
+#bg-video {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -130,97 +131,17 @@ body {
   min-height: 100%;
   width: auto;
   height: auto;
-  transform: translateX(-50%) translateY(-50%);
+  transform: translate(-50%, -50%);
   object-fit: cover;
-  opacity: 1;
 }
 
-/* Deep space background animation */
-.stars, .nebula, .shooting-star {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
+/* Space background animations removed to show video background */
 
-.stars {
-  background-image: 
-    radial-gradient(2px 2px at 20px 30px, #ffffff, rgba(0,0,0,0)),
-    radial-gradient(2px 2px at 40px 70px, #ffffff, rgba(0,0,0,0)),
-    radial-gradient(1px 1px at 90px 40px, #ffffff, rgba(0,0,0,0)),
-    radial-gradient(2px 2px at 160px 120px, #ffffff, rgba(0,0,0,0)),
-    radial-gradient(1px 1px at 230px 180px, #ffffff, rgba(0,0,0,0));
-  background-repeat: repeat;
-  background-size: 250px 250px;
-  animation: twinkle 7s linear infinite;
-}
-
-.nebula {
-  background: 
-    radial-gradient(circle at 30% 50%, rgba(74, 108, 255, 0.2) 0%, rgba(0,0,0,0) 50%),
-    radial-gradient(circle at 80% 30%, rgba(94, 23, 235, 0.2) 0%, rgba(0,0,0,0) 40%);
-  background-size: 200% 200%;
-  animation: nebula-move 30s ease infinite;
-}
-
-.shooting-star {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.shooting-star::after {
-  content: "";
-  position: absolute;
-  top: -100px;
-  left: -100px;
-  width: 2px;
-  height: 50px;
-  background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 50%, rgba(255,255,255,0) 100%);
-  transform: rotate(-45deg);
-  animation: shooting-star 10s linear infinite;
-}
-
-/* Animations */
-@keyframes twinkle {
-  0% { opacity: 0.5; }
-  50% { opacity: 1; }
-  100% { opacity: 0.5; }
-}
-
-@keyframes nebula-move {
-  0% { background-position: 0% 0%; }
-  50% { background-position: 100% 100%; }
-  100% { background-position: 0% 0%; }
-}
-
-@keyframes shooting-star {
-  0% {
-    top: -100px;
-    left: -100px;
-    opacity: 0;
-  }
-  10% {
-    top: 10%;
-    left: 10%;
-    opacity: 1;
-  }
-  20% {
-    top: 20%;
-    left: 20%;
-    opacity: 0;
-  }
-  100% {
-    top: 20%;
-    left: 20%;
-    opacity: 0;
-  }
+/* Animation keyframes for UI elements */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
 }
 
 main {
