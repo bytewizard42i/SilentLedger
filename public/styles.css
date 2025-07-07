@@ -110,6 +110,20 @@ body {
   }
 }
 
+/* Video background */
+#video-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  min-width: 100%;
+  min-height: 100%;
+  width: auto;
+  height: auto;
+  z-index: -2;
+  object-fit: cover;
+  opacity: 0.7;
+}
+
 /* Deep space background animation */
 .stars, .nebula, .shooting-star {
   position: fixed;
