@@ -7,7 +7,7 @@
 const API_CONFIG = {
   proofServer: 'http://localhost:3000',
   mockWallet: 'http://localhost:3001',
-  useMockWallet: true // Set to false when using real Midnight Lace wallet
+  useMockWallet: !window.meshSDK // Use mock wallet if Mesh SDK is not available
 };
 
 // State management
@@ -101,6 +101,17 @@ document.addEventListener('DOMContentLoaded', () => {
   domElements.verifyFormPublic.addEventListener('submit', (e) => handleVerification(e, 'public'));
   domElements.orderFormPublic.addEventListener('submit', (e) => handleOrderSubmission(e, 'public'));
   
+  // Check if Mesh SDK is available
+  if (window.meshSDK) {
+    console.log('Mesh SDK for Midnight detected');
+    API_CONFIG.useMockWallet = false;
+    // Add a class to body to show Lace integration is available
+    document.body.classList.add('lace-available');
+  } else {
+    console.log('Mesh SDK not detected, using mock wallet');
+    API_CONFIG.useMockWallet = true;
+  }
+  
   // Tab switching
   domElements.tabButtons.forEach(button => {
     button.addEventListener('click', () => {
@@ -125,7 +136,26 @@ document.addEventListener('DOMContentLoaded', () => {
 // Wallet Connection
 async function connectWallet() {
   try {
-    // For hackathon demo, we'll use the mock wallet
+    // If user is currently connected, disconnect instead
+    if (appState.connected) {
+      if (API_CONFIG.useMockWallet) {
+        // Mock wallet disconnect
+        appState.wallet = null;
+        appState.connected = false;
+        updateWalletUI();
+        showNotification('Wallet disconnected', 'success');
+      } else {
+        // Midnight Lace wallet disconnect
+        await MidnightWallet.disconnect();
+        appState.wallet = null;
+        appState.connected = false;
+        updateWalletUI();
+        showNotification('Lace Wallet disconnected', 'success');
+      }
+      return;
+    }
+
+    // Connect to wallet
     if (API_CONFIG.useMockWallet) {
       const response = await fetch(`${API_CONFIG.mockWallet}/api/wallet/connect`, {
         method: 'POST',
@@ -139,14 +169,60 @@ async function connectWallet() {
         appState.wallet = data.wallet;
         appState.connected = true;
         updateWalletUI();
-        showNotification('Wallet connected successfully', 'success');
+        showNotification('Mock wallet connected successfully', 'success');
       } else {
-        throw new Error(data.error || 'Failed to connect wallet');
+        throw new Error(data.error || 'Failed to connect mock wallet');
       }
     } else {
-      // Real Midnight Lace wallet integration would go here
-      // This would be implemented using the Midnight SDK
-      showNotification('Midnight Lace wallet integration not available in demo', 'warning');
+      // Check if Midnight Lace Wallet is installed
+      if (!MidnightWallet.isInstalled()) {
+        showNotification('Midnight Lace Wallet not detected. Please install it first.', 'error');
+        return;
+      }
+
+      // Set wallet event callbacks
+      MidnightWallet.setCallbacks({
+        onConnectSuccess: (walletData) => {
+          console.log('Wallet connected successfully:', walletData);
+          // Additional success actions if needed
+        },
+        onConnectError: (error) => {
+          console.error('Wallet connection error:', error);
+          showNotification('Error connecting to Lace Wallet: ' + error.message, 'error');
+        },
+        onDisconnect: () => {
+          appState.wallet = null;
+          appState.connected = false;
+          updateWalletUI();
+          showNotification('Lace Wallet disconnected', 'info');
+        },
+        onAccountChange: (newAccount) => {
+          appState.wallet.address = newAccount;
+          updateWalletUI();
+          showNotification('Account changed', 'info');
+        },
+        onNetworkChange: (newNetwork) => {
+          showNotification(`Network changed to ${newNetwork}`, 'info');
+        }
+      });
+
+      // Connect to the Lace wallet
+      try {
+        const walletData = await MidnightWallet.connect();
+        
+        // Update app state with wallet information
+        appState.wallet = {
+          address: walletData.address,
+          network: walletData.network,
+          balance: walletData.balance
+        };
+        appState.connected = true;
+        
+        updateWalletUI();
+        showNotification('Lace Wallet connected successfully', 'success');
+      } catch (walletError) {
+        showNotification('Failed to connect to Lace Wallet: ' + walletError.message, 'error');
+      }
     }
   } catch (error) {
     console.error('Error connecting wallet:', error);
@@ -154,7 +230,7 @@ async function connectWallet() {
   }
 }
 
-function checkWalletConnection() {
+async function checkWalletConnection() {
   // Check if we have a wallet in session storage
   const savedWallet = sessionStorage.getItem('silentledger_wallet');
   
@@ -167,6 +243,22 @@ function checkWalletConnection() {
       console.error('Error parsing saved wallet:', e);
       sessionStorage.removeItem('silentledger_wallet');
     }
+  } else if (!API_CONFIG.useMockWallet && MidnightWallet && MidnightWallet.isInstalled()) {
+    // Check if we have an existing connection with Lace Wallet
+    try {
+      const walletState = MidnightWallet.getState();
+      if (walletState.connected && walletState.address) {
+        appState.wallet = {
+          address: walletState.address,
+          network: walletState.network,
+          balance: walletState.balance
+        };
+        appState.connected = true;
+        updateWalletUI();
+      }
+    } catch (e) {
+      console.error('Error checking Lace Wallet connection:', e);
+    }
   }
 }
 
@@ -176,11 +268,25 @@ function updateWalletUI() {
     domElements.connectWalletBtn.textContent = 'Disconnect';
     domElements.connectWalletBtn.classList.add('connected');
     
-    // Save to session storage
-    sessionStorage.setItem('silentledger_wallet', JSON.stringify(appState.wallet));
+    // If using Lace Wallet, show wallet type
+    if (!API_CONFIG.useMockWallet) {
+      domElements.connectWalletBtn.textContent = 'Disconnect Lace';
+      // Optional: Add Lace logo or indicator
+      if (domElements.walletAddress.querySelector('.lace-indicator') === null) {
+        const laceIndicator = document.createElement('span');
+        laceIndicator.className = 'lace-indicator';
+        laceIndicator.textContent = '🌙'; // Midnight moon emoji as indicator
+        domElements.walletAddress.appendChild(laceIndicator);
+      }
+    }
+    
+    // Save to session storage (only for mock wallet)
+    if (API_CONFIG.useMockWallet) {
+      sessionStorage.setItem('silentledger_wallet', JSON.stringify(appState.wallet));
+    }
   } else {
     domElements.walletAddress.textContent = 'Not connected';
-    domElements.connectWalletBtn.textContent = 'Connect Wallet';
+    domElements.connectWalletBtn.textContent = API_CONFIG.useMockWallet ? 'Connect Wallet' : 'Connect Lace';
     domElements.connectWalletBtn.classList.remove('connected');
     
     // Clear session storage
@@ -189,7 +295,7 @@ function updateWalletUI() {
 }
 
 // Asset Ownership Verification
-async function handleVerification(event) {
+async function handleVerification(event, side) {
   event.preventDefault();
   
   if (!appState.connected) {
@@ -197,8 +303,15 @@ async function handleVerification(event) {
     return;
   }
   
-  const assetId = domElements.assetSelect.value;
-  const amount = parseInt(domElements.amountInput.value, 10);
+  // Get the appropriate elements based on the side (private or public)
+  const assetSelect = side === 'private' ? domElements.assetSelectPrivate : domElements.assetSelectPublic;
+  const amountInput = side === 'private' ? domElements.amountInputPrivate : domElements.amountInputPublic;
+  const verificationResult = side === 'private' ? domElements.verificationResultPrivate : domElements.verificationResultPublic;
+  const verificationStatus = side === 'private' ? domElements.verificationStatusPrivate : domElements.verificationStatusPublic;
+  const verificationId = side === 'private' ? domElements.verificationIdPrivate : null;
+  
+  const assetId = assetSelect.value;
+  const amount = parseInt(amountInput.value, 10);
   
   if (!assetId || isNaN(amount) || amount <= 0) {
     showNotification('Please select an asset and enter a valid amount', 'error');
@@ -206,14 +319,34 @@ async function handleVerification(event) {
   }
   
   try {
-    // Call the verification API
-    const response = await fetch(`${API_CONFIG.mockWallet}/api/wallet/${appState.wallet ? 'user1' : 'guest'}/verify-ownership`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ assetId, amount })
-    });
+    let data;
     
-    const data = await response.json();
+    if (API_CONFIG.useMockWallet) {
+      // Call the mock verification API
+      const response = await fetch(`${API_CONFIG.mockWallet}/api/wallet/${appState.wallet ? 'user1' : 'guest'}/verify-ownership`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assetId, amount })
+      });
+      
+      data = await response.json();
+    } else {
+      // Use Midnight Lace Wallet for verification with zero-knowledge proofs
+      try {
+        // This uses the Mesh SDK to generate a zero-knowledge proof of asset ownership
+        const verificationData = await MidnightWallet.verifyOwnership(assetId, amount);
+        
+        data = {
+          success: true,
+          verified: verificationData.verified,
+          verificationId: verificationData.verificationId,
+          proof: verificationData.proof
+        };
+      } catch (walletError) {
+        console.error('Lace Wallet verification error:', walletError);
+        throw new Error(`Lace Wallet verification failed: ${walletError.message}`);
+      }
+    }
     
     if (data.success) {
       // Store the verification for later use
@@ -221,25 +354,41 @@ async function handleVerification(event) {
         assetId,
         amount,
         verified: data.verified,
-        timestamp: new Date()
+        timestamp: new Date(),
+        side: side,
+        proof: data.proof // Store proof for private transactions
       };
       
       // Update UI
-      domElements.verificationResult.classList.remove('hidden');
-      domElements.verificationStatus.textContent = data.verified 
-        ? `✓ Ownership verified for ${amount} ${assetId}` 
-        : `✗ Ownership verification failed`;
-      domElements.verificationStatus.className = data.verified ? 'status-success' : 'status-error';
-      domElements.verificationId.textContent = data.verificationId;
+      verificationResult.classList.remove('hidden');
       
-      // Log to proof server
-      logVerification(assetId, amount, data.verified, data.verificationId);
+      if (side === 'private') {
+        // Private verification shows success/fail and provides a verification ID
+        verificationStatus.textContent = data.verified 
+          ? `✓ Ownership verified for ${amount} ${assetId}` 
+          : `✗ Ownership verification failed`;
+        verificationStatus.className = data.verified ? 'status-success' : 'status-error';
+        verificationId.textContent = data.verificationId;
+      } else {
+        // Public verification just shows the balance publicly
+        verificationStatus.textContent = data.verified 
+          ? `Balance check: You have at least ${amount} ${assetId}` 
+          : `Balance check: You do not have ${amount} ${assetId}`;
+        verificationStatus.className = data.verified ? 'status-success' : 'status-error';
+      }
+      
+      // Log to proof server (only for private side with ZKPs)
+      if (side === 'private') {
+        logVerification(assetId, amount, data.verified, data.verificationId);
+      }
       
       // Show notification
-      showNotification(data.verified 
-        ? `Successfully verified ownership of ${amount} ${assetId}` 
-        : `Could not verify ownership of ${amount} ${assetId}`, 
-        data.verified ? 'success' : 'error');
+      showNotification(
+        side === 'private' ?
+          (data.verified ? `Successfully verified ownership of ${amount} ${assetId} (private)` : `Could not verify ownership of ${amount} ${assetId}`) :
+          (data.verified ? `Balance check: You have at least ${amount} ${assetId} (public)` : `Balance check: Insufficient ${assetId} balance`),
+        data.verified ? 'success' : 'error'
+      );
     } else {
       throw new Error(data.error || 'Verification failed');
     }
@@ -372,17 +521,22 @@ function updateCurrentPrice(assetId) {
 }
 
 // Order Placement
-function toggleVerificationIdField() {
-  const orderType = domElements.orderTypeSelect.value;
+function toggleVerificationIdField(side) {
+  const orderTypeSelect = side === 'private' ? domElements.orderTypeSelectPrivate : domElements.orderTypeSelectPublic;
+  const verificationIdContainer = side === 'private' ? domElements.verificationIdContainerPrivate : null;
+  
+  if (!verificationIdContainer) return; // Only private side has verification ID container
+  
+  const orderType = orderTypeSelect.value;
   
   if (orderType === 'sell') {
-    domElements.verificationIdContainer.classList.remove('hidden');
+    verificationIdContainer.classList.remove('hidden');
   } else {
-    domElements.verificationIdContainer.classList.add('hidden');
+    verificationIdContainer.classList.add('hidden');
   }
 }
 
-async function handleOrderSubmission(event) {
+async function handleOrderSubmission(event, side) {
   event.preventDefault();
   
   if (!appState.connected) {
@@ -390,10 +544,19 @@ async function handleOrderSubmission(event) {
     return;
   }
   
-  const assetId = domElements.orderAssetSelect.value;
-  const orderType = domElements.orderTypeSelect.value;
-  const price = parseFloat(domElements.orderPriceInput.value);
-  const amount = parseInt(domElements.orderAmountInput.value, 10);
+  // Get the appropriate elements based on the side (private or public)
+  const orderAssetSelect = side === 'private' ? domElements.orderAssetSelectPrivate : domElements.orderAssetSelectPublic;
+  const orderTypeSelect = side === 'private' ? domElements.orderTypeSelectPrivate : domElements.orderTypeSelectPublic;
+  const orderPriceInput = side === 'private' ? domElements.orderPriceInputPrivate : domElements.orderPriceInputPublic;
+  const orderAmountInput = side === 'private' ? domElements.orderAmountInputPrivate : domElements.orderAmountInputPublic;
+  const orderResult = side === 'private' ? domElements.orderResultPrivate : domElements.orderResultPublic;
+  const orderStatus = side === 'private' ? domElements.orderStatusPrivate : domElements.orderStatusPublic;
+  const orderId = side === 'private' ? domElements.orderIdPrivate : domElements.orderIdPublic;
+  
+  const assetId = orderAssetSelect.value;
+  const orderType = orderTypeSelect.value;
+  const price = parseFloat(orderPriceInput.value);
+  const amount = parseInt(orderAmountInput.value, 10);
   
   if (!assetId || !orderType || isNaN(price) || price <= 0 || isNaN(amount) || amount <= 0) {
     showNotification('Please fill in all fields with valid values', 'error');
@@ -414,56 +577,118 @@ async function handleOrderSubmission(event) {
         appState.verifications[verificationId].assetId !== assetId ||
         !appState.verifications[verificationId].verified) {
       showNotification('Invalid verification ID. Please verify your ownership first', 'error');
-      return;
-    }
   }
   
   try {
-    // Submit order to API
-    const response = await fetch(`${API_CONFIG.mockWallet}/api/orders`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        wallet: appState.wallet ? 'user1' : 'guest',
-        orderType,
+    // Handle verification ID for private sell orders
+    let verificationId = '';
+    if (side === 'private' && orderType === 'sell') {
+      verificationId = domElements.verificationIdInputPrivate ? domElements.verificationIdInputPrivate.value : '';
+      if (!verificationId) {
+        showNotification('For private sell orders, you must provide a verification ID. Please verify ownership first.', 'error');
+        return;
+      }
+    }
+    
+    let data;
+    
+    if (API_CONFIG.useMockWallet) {
+      // Create the order through the mock API
+      let endpoint = `${API_CONFIG.mockWallet}/api/orders`;
+      let orderData = {
         assetId,
+        orderType,
         price,
         amount,
-        verificationId: orderType === 'sell' ? domElements.verificationIdInput.value.trim() : undefined
-      })
-    });
-    
-    const data = await response.json();
+        walletAddress: appState.wallet.address,
+        side: side // Include which side (private/public) the order is for
+      };
+      
+      if (side === 'private' && orderType === 'sell' && verificationId) {
+        // For private sell orders, we need to provide the verification ID
+        orderData.verificationId = verificationId;
+      }
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData)
+      });
+      
+      data = await response.json();
+    } else {
+      // Use Midnight Lace Wallet for transaction signing
+      try {
+        // Format transaction for the Midnight blockchain
+        const transaction = {
+          type: 'order',
+          orderType: orderType,
+          assetId: assetId,
+          price: price.toString(),
+          amount: amount.toString(),
+          side: side, // private or public orderbook
+          // For private orders, include the verification proof
+          ...(side === 'private' && orderType === 'sell' && verificationId && {
+            verificationId: verificationId,
+            proof: appState.verifications[verificationId]?.proof
+          })
+        };
+        
+        // Sign the transaction with the Lace wallet
+        const signedTx = await MidnightWallet.signTransaction(transaction);
+        
+        // This would normally send the transaction to the Midnight network
+        // Here we're simulating a successful response
+        data = {
+          success: true,
+          orderId: hashOrderData({
+            assetId,
+            orderType,
+            price,
+            amount,
+            side,
+            timestamp: new Date().toISOString()
+          }),
+          tx: signedTx
+        };
+        
+        // In a real implementation, you'd broadcast the signed transaction
+        console.log('Signed transaction:', signedTx);
+      } catch (walletError) {
+        console.error('Lace Wallet transaction error:', walletError);
+        throw new Error(`Lace Wallet transaction failed: ${walletError.message}`);
+      }
+    }
     
     if (data.success) {
-      // Update UI
-      domElements.orderResult.classList.remove('hidden');
-      domElements.orderStatus.textContent = `✓ ${orderType.toUpperCase()} order placed successfully`;
-      domElements.orderStatus.className = 'status-success';
-      domElements.orderId.textContent = `Order ID: ${data.order.id}`;
+      // Show the order success in the UI
+      orderResult.classList.remove('hidden');
+      orderStatus.textContent = `✓ Order placed successfully`;
+      orderStatus.className = 'status-success';
+      orderId.textContent = data.orderId;
       
-      // Log to proof server
-      logTransaction(orderType, assetId, price, amount, data.order.id);
+      // Refresh the orderbook
+      await loadOrderbook(assetId, side);
       
-      // Reload orderbook
-      loadOrderbook(assetId);
+      // Clear the form
+      orderPriceInput.value = '';
+      orderAmountInput.value = '';
+      
+      if (side === 'private' && orderType === 'sell' && domElements.verificationIdInputPrivate) {
+        domElements.verificationIdInputPrivate.value = '';
+      }
+      
+      // Log the transaction
+      logTransaction(orderType, assetId, price, amount, data.orderId);
       
       // Show notification
-      showNotification(`${orderType.toUpperCase()} order placed successfully`, 'success');
-      
-      // Reset form
-      domElements.orderForm.reset();
-      domElements.verificationIdContainer.classList.add('hidden');
+      const orderDesc = side === 'private' ? 'private' : 'public';
+      showNotification(`${orderType.toUpperCase()} ${orderDesc} order for ${amount} ${assetId} at ${price} placed successfully`, 'success');
     } else {
       throw new Error(data.error || 'Failed to place order');
     }
   } catch (error) {
     console.error('Error placing order:', error);
-    
-    domElements.orderResult.classList.remove('hidden');
-    domElements.orderStatus.textContent = `✗ Failed to place order: ${error.message}`;
-    domElements.orderStatus.className = 'status-error';
-    
     showNotification('Failed to place order: ' + error.message, 'error');
   }
 }
@@ -625,9 +850,10 @@ async function attemptFrontrun(side) {
     // If CLI is available, log to it
     if (window.cliInterface) {
       window.cliInterface.printToOutput('Front-running attempt on public side SUCCEEDED:', 'error');
-      window.cliInterface.printToOutput(`Original order: ${pendingOrder.orderType.toUpperCase()} ${pendingOrder.amount} ${pendingOrder.assetId} @ ${pendingOrder.price.toFixed(4)}`, 'info');
+      window.cliInterface.printToOutput(`Order details were visible. Front-run with ${pendingOrder.orderType === 'buy' ? 'higher' : 'lower'} price of ${frontRunPrice.toFixed(4)}.`, 'info');
       window.cliInterface.printToOutput(`Front-run with: ${pendingOrder.orderType.toUpperCase()} ${pendingOrder.amount} ${pendingOrder.assetId} @ ${frontRunPrice.toFixed(4)}`, 'warning');
     }
+  }
   }
 }
 
