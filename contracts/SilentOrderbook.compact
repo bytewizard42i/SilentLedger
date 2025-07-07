@@ -1,0 +1,121 @@
+/**
+ * SilentOrderbook.compact
+ * SilentLedger - Midnight Mini DApp Hackathon
+ * 
+ * A privacy-preserving orderbook implementation using Midnight's
+ * native privacy features with ZK proofs for asset ownership verification
+ * and obfuscated order commitments.
+ */
+
+import CompactStandardLibrary;
+
+// Enums for DEX and order status
+enum DEXState { active, paused }
+enum OrderStatus { open, matched, cancelled, modified }
+
+// Struct for order commitment (obfuscated)
+struct OrderCommit {
+  commitment: Bytes<32>;
+  timestamp: Uint<64>;
+  status: OrderStatus;
+}
+
+// Ledger state
+ledger dex_state: DEXState;
+ledger last_batch_root: Bytes<32>;
+ledger order_queue: List<OrderCommit>;
+
+// Witness: private user order data
+struct OrderData {
+  amount: Uint<64>;
+  asset_id: Bytes<32>;
+  direction: Bool; // true = sell, false = buy
+  nonce: Bytes<32>;
+  asset_proof: ZKProof<OwnsAsset>;
+}
+witness order_data(): OrderData;
+
+// Circuit to add an order (obfuscated)
+export circuit add_order(commitment: Bytes<32>, timestamp: Uint<64>): [] {
+  assert(dex_state == DEXState.active, "DEX is paused");
+  let new_order: OrderCommit = { commitment, timestamp, status: OrderStatus.open };
+  order_queue.append(new_order);
+}
+
+// Circuit to cancel an order
+export circuit cancel_order(order_index: Uint<64>): [] {
+  assert(dex_state == DEXState.active, "DEX is paused");
+  assert(order_index < order_queue.length(), "Invalid order index");
+  
+  // Get the order from the queue
+  let order = order_queue.get(order_index);
+  
+  // Verify ownership of the order using the witness
+  let data = order_data();
+  let computed_commitment = hash([
+    data.amount, 
+    data.asset_id, 
+    data.direction, 
+    data.nonce
+  ]);
+  
+  // Check that the witness data matches the committed order
+  assert(computed_commitment == order.commitment, "Not the order owner");
+  
+  // Update the order status
+  order.status = OrderStatus.cancelled;
+  order_queue.set(order_index, order);
+}
+
+// Circuit for matching orders in a batch
+export circuit match_orders(
+  order_indices: List<Uint<64>>,
+  match_amounts: List<Uint<64>>,
+  new_root: Bytes<32>
+): [] {
+  assert(dex_state == DEXState.active, "DEX is paused");
+  assert(order_indices.length() > 0, "Empty order list");
+  assert(order_indices.length() == match_amounts.length(), "Mismatched arrays");
+  
+  // Update orders with matched amounts
+  // In a real implementation, this would include complex logic to verify
+  // that the matches are valid and fair
+  
+  // For demonstration purposes, we just update the order status
+  for (let i = 0; i < order_indices.length(); i++) {
+    let idx = order_indices.get(i);
+    assert(idx < order_queue.length(), "Invalid order index");
+    
+    let order = order_queue.get(idx);
+    order.status = OrderStatus.matched;
+    order_queue.set(idx, order);
+  }
+  
+  // Update the batch root
+  last_batch_root = new_root;
+}
+
+// Admin circuit to pause/unpause the DEX
+export circuit set_dex_state(new_state: DEXState): [] {
+  // In a real implementation, this would include access control
+  dex_state = new_state;
+}
+
+// Asset ownership verification circuit
+circuit verify_asset_ownership(
+  asset_id: Bytes<32>, 
+  min_amount: Uint<64>
+): ZKProof<OwnsAsset> {
+  // This would integrate with Midnight's asset registry
+  // to verify that the user owns at least min_amount of the asset
+  // without revealing the actual balance
+  
+  // The returned proof can then be used in order creation
+  // to prevent short selling
+}
+
+// Initialize the DEX
+export circuit initialize(): [] {
+  dex_state = DEXState.active;
+  last_batch_root = hash([0]);
+}
