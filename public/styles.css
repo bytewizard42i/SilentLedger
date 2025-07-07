@@ -112,15 +112,18 @@ body {
 }
 
 /* Video background */
+body {
+  background-color: #000; /* Black fallback */
+}
+
 #video-container {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: -1000;
+  z-index: -1;
   overflow: hidden;
-  background-color: transparent;
 }
 
 #bg-video {
@@ -135,9 +138,6 @@ body {
   object-fit: cover;
 }
 
-/* Space background animations removed to show video background */
-
-/* Animation keyframes for UI elements */
 @keyframes pulse {
   0% { transform: scale(1); }
   50% { transform: scale(1.05); }
