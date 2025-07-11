@@ -7,11 +7,13 @@
  * and obfuscated order commitments.
  */
 
+pragma language_version 0.15;
+
 import CompactStandardLibrary;
 
 // Enums for DEX and order status
-enum DEXState { active, paused }
-enum OrderStatus { open, matched, cancelled, modified }
+enum DEXState { Active, Paused }
+enum OrderStatus { Open, Matched, Cancelled, Modified }
 
 // Struct for order commitment (obfuscated)
 struct OrderCommit {
@@ -21,101 +23,130 @@ struct OrderCommit {
 }
 
 // Ledger state
-ledger dex_state: DEXState;
-ledger last_batch_root: Bytes<32>;
-ledger order_queue: List<OrderCommit>;
+ledger dexState: DEXState;
+ledger lastBatchRoot: Bytes<32>;
+ledger orderQueue: List<OrderCommit>;
 
 // Witness: private user order data
 struct OrderData {
   amount: Uint<64>;
-  asset_id: Bytes<32>;
+  assetId: Bytes<32>;
   direction: Bool; // true = sell, false = buy
   nonce: Bytes<32>;
-  asset_proof: ZKProof<OwnsAsset>;
-}
-witness order_data(): OrderData;
-
-// Circuit to add an order (obfuscated)
-export circuit add_order(commitment: Bytes<32>, timestamp: Uint<64>): [] {
-  assert(dex_state == DEXState.active, "DEX is paused");
-  let new_order: OrderCommit = { commitment, timestamp, status: OrderStatus.open };
-  order_queue.append(new_order);
+  assetProof: ZKProof<OwnsAsset>;
 }
 
-// Circuit to cancel an order
-export circuit cancel_order(order_index: Uint<64>): [] {
-  assert(dex_state == DEXState.active, "DEX is paused");
-  assert(order_index < order_queue.length(), "Invalid order index");
+// Witness function to retrieve private order data
+witness orderData(): OrderData;
+
+// ZK proof type for asset ownership
+type OwnsAsset;
+
+/**
+ * Circuit to add an order (obfuscated)
+ * Uses a commitment to hide order details while still enabling matching
+ */
+export circuit addOrder(commitment: Bytes<32>, timestamp: Uint<64>): [] {
+  assert(dexState == DEXState.Active, "DEX is paused");
+  let newOrder: OrderCommit = { 
+    commitment, 
+    timestamp, 
+    status: OrderStatus.Open 
+  };
+  orderQueue.append(newOrder);
+}
+
+/**
+ * Circuit to cancel an order
+ * Requires proving ownership of the order via witness data
+ */
+export circuit cancelOrder(orderIndex: Uint<64>): [] {
+  assert(dexState == DEXState.Active, "DEX is paused");
+  assert(orderIndex < orderQueue.length(), "Invalid order index");
   
   // Get the order from the queue
-  let order = order_queue.get(order_index);
+  let order = orderQueue.get(orderIndex);
   
   // Verify ownership of the order using the witness
-  let data = order_data();
-  let computed_commitment = hash([
+  let data = orderData();
+  let computedCommitment = hash([
     data.amount, 
-    data.asset_id, 
+    data.assetId, 
     data.direction, 
     data.nonce
   ]);
   
   // Check that the witness data matches the committed order
-  assert(computed_commitment == order.commitment, "Not the order owner");
+  assert(computedCommitment == order.commitment, "Not the order owner");
   
   // Update the order status
-  order.status = OrderStatus.cancelled;
-  order_queue.set(order_index, order);
+  order.status = OrderStatus.Cancelled;
+  orderQueue.set(orderIndex, order);
 }
 
-// Circuit for matching orders in a batch
-export circuit match_orders(
-  order_indices: List<Uint<64>>,
-  match_amounts: List<Uint<64>>,
-  new_root: Bytes<32>
+/**
+ * Circuit for matching orders in a batch
+ * In a real implementation, this would be performed by validators
+ * after verifying all matches are valid and fair
+ */
+export circuit matchOrders(
+  orderIndices: List<Uint<64>>,
+  matchAmounts: List<Uint<64>>,
+  newRoot: Bytes<32>
 ): [] {
-  assert(dex_state == DEXState.active, "DEX is paused");
-  assert(order_indices.length() > 0, "Empty order list");
-  assert(order_indices.length() == match_amounts.length(), "Mismatched arrays");
+  assert(dexState == DEXState.Active, "DEX is paused");
+  assert(orderIndices.length() > 0, "Empty order list");
+  assert(orderIndices.length() == matchAmounts.length(), "Mismatched arrays");
   
   // Update orders with matched amounts
   // In a real implementation, this would include complex logic to verify
   // that the matches are valid and fair
   
   // For demonstration purposes, we just update the order status
-  for (let i = 0; i < order_indices.length(); i++) {
-    let idx = order_indices.get(i);
-    assert(idx < order_queue.length(), "Invalid order index");
+  for (let i = 0; i < orderIndices.length(); i++) {
+    let idx = orderIndices.get(i);
+    assert(idx < orderQueue.length(), "Invalid order index");
     
-    let order = order_queue.get(idx);
-    order.status = OrderStatus.matched;
-    order_queue.set(idx, order);
+    let order = orderQueue.get(idx);
+    order.status = OrderStatus.Matched;
+    orderQueue.set(idx, order);
   }
   
   // Update the batch root
-  last_batch_root = new_root;
+  lastBatchRoot = newRoot;
 }
 
-// Admin circuit to pause/unpause the DEX
-export circuit set_dex_state(new_state: DEXState): [] {
+/**
+ * Admin circuit to pause/unpause the DEX
+ * In a real implementation, this would have access control restrictions
+ */
+export circuit setDexState(newState: DEXState): [] {
   // In a real implementation, this would include access control
-  dex_state = new_state;
+  dexState = newState;
 }
 
-// Asset ownership verification circuit
-circuit verify_asset_ownership(
-  asset_id: Bytes<32>, 
-  min_amount: Uint<64>
+/**
+ * Asset ownership verification circuit
+ * Creates a zero-knowledge proof that the user owns at least the minimum amount
+ * without revealing their actual balance
+ */
+circuit verifyAssetOwnership(
+  assetId: Bytes<32>, 
+  minAmount: Uint<64>
 ): ZKProof<OwnsAsset> {
   // This would integrate with Midnight's asset registry
-  // to verify that the user owns at least min_amount of the asset
+  // to verify that the user owns at least minAmount of the asset
   // without revealing the actual balance
   
   // The returned proof can then be used in order creation
   // to prevent short selling
 }
 
-// Initialize the DEX
+/**
+ * Initialize the DEX
+ * Sets the initial state and creates the first batch root
+ */
 export circuit initialize(): [] {
-  dex_state = DEXState.active;
-  last_batch_root = hash([0]);
+  dexState = DEXState.Active;
+  lastBatchRoot = hash([0]);
 }

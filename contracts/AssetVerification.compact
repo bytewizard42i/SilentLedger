@@ -6,115 +6,148 @@
  * using Midnight's privacy features and zero-knowledge proofs.
  */
 
-contract AssetVerification {
-    // Struct to store verification status without revealing balance
-    struct OwnershipProof {
-        address owner;        // Owner address (private)
-        bytes32 assetId;      // Asset identifier (public)
-        bool verified;        // Verification status (public)
-        uint64 timestamp;     // When verification occurred (public)
-        bytes32 proofHash;    // Hash of the ZK proof (public)
-    }
+pragma language_version 0.15;
+
+import CompactStandardLibrary;
+
+// Struct to store verification status without revealing balance
+struct OwnershipProof {
+  owner: Address;          // Owner address (private)
+  assetId: Bytes<32>;      // Asset identifier (public)
+  verified: Bool;          // Verification status (public)
+  timestamp: Uint<64>;     // When verification occurred (public)
+  proofHash: Bytes<32>;    // Hash of the ZK proof (public)
+}
+
+// Ledger state
+ledger ownershipProofs: Map<Address, Map<Bytes<32>, OwnershipProof>>;
+ledger usedProofs: Map<Bytes<32>, Bool>;
+
+// Constants
+const VERIFICATION_VALIDITY_PERIOD: Uint<64> = 86400; // 24 hours in seconds
+
+/**
+ * Verify ownership of an asset
+ * Uses a zero-knowledge proof to verify ownership without revealing balance
+ */
+export circuit verifyOwnership(
+  assetId: Bytes<32>,
+  minAmount: Uint<256>,
+  zkProof: Bytes<>
+): Bytes<32> {
+  // Verify the ZK proof without revealing actual balance
+  // The ZK proof proves that the user owns at least minAmount of the asset
+  let isValid = validateProof(msg.sender, assetId, minAmount, zkProof);
+  assert(isValid, "Invalid ownership proof");
+  
+  // Create proof hash that will serve as verification ID
+  let proofHash = hash([msg.sender, assetId, minAmount, now(), zkProof]);
+  
+  // Ensure this proof hasn't been used before
+  let isUsed = usedProofs.get(proofHash);
+  assert(!isUsed, "Proof already used");
+  usedProofs.set(proofHash, true);
+  
+  // Store the verification
+  let proof = OwnershipProof {
+    owner: msg.sender,
+    assetId: assetId,
+    verified: true,
+    timestamp: now(),
+    proofHash: proofHash
+  };
+  
+  // If map doesn't exist yet, create it
+  if (!ownershipProofs.has(msg.sender)) {
+    ownershipProofs.set(msg.sender, Map<Bytes<32>, OwnershipProof>::new());
+  }
+  
+  // Store the proof
+  let ownerMap = ownershipProofs.get(msg.sender);
+  ownerMap.set(assetId, proof);
+  ownershipProofs.set(msg.sender, ownerMap);
+  
+  // Emit event (Midnight handles this differently than Solidity)
+  event("OwnershipVerified", [assetId, true, now()]);
+  
+  return proofHash;
+}
+
+/**
+ * Check if an ownership verification is valid
+ * Can be called by anyone to check if a verification is still valid
+ */
+export circuit checkVerification(
+  owner: Address, 
+  assetId: Bytes<32>, 
+  proofHash: Bytes<32>
+): [Bool, Uint<64>] {
+  // Ensure the owner map exists
+  if (!ownershipProofs.has(owner)) {
+    return [false, 0];
+  }
+  
+  let ownerMap = ownershipProofs.get(owner);
+  
+  // Ensure the asset record exists
+  if (!ownerMap.has(assetId)) {
+    return [false, 0];
+  }
+  
+  let proof = ownerMap.get(assetId);
+  
+  // Check if the verification exists and matches the proof hash
+  if (proof.verified && proof.proofHash == proofHash) {
+    let expiryTimestamp = proof.timestamp + VERIFICATION_VALIDITY_PERIOD;
+    let stillValid = now() <= expiryTimestamp;
     
-    // Mappings to track ownership verifications
-    mapping(address => mapping(bytes32 => OwnershipProof)) private ownershipProofs;
-    mapping(bytes32 => bool) private usedProofs;
-    
-    // Events
-    event OwnershipVerified(bytes32 indexed assetId, bool verified, uint64 timestamp);
-    event VerificationExpired(bytes32 indexed assetId, uint64 timestamp);
-    
-    // Constants
-    uint64 public constant VERIFICATION_VALIDITY_PERIOD = 86400; // 24 hours in seconds
-    
-    /**
-     * Verify ownership of an asset
-     * Uses a zero-knowledge proof to verify ownership without revealing balance
-     */
-    function verifyOwnership(
-        bytes32 assetId,
-        uint256 minAmount,
-        bytes calldata zkProof
-    ) external returns (bytes32 verificationId) {
-        // Verify the ZK proof without revealing actual balance
-        // The ZK proof proves that the user owns at least minAmount of the asset
-        require(validateProof(msg.sender, assetId, minAmount, zkProof), "Invalid ownership proof");
-        
-        // Create proof hash that will serve as verification ID
-        bytes32 proofHash = keccak256(abi.encodePacked(msg.sender, assetId, minAmount, block.timestamp, zkProof));
-        
-        // Ensure this proof hasn't been used before
-        require(!usedProofs[proofHash], "Proof already used");
-        usedProofs[proofHash] = true;
-        
-        // Store the verification
-        ownershipProofs[msg.sender][assetId] = OwnershipProof({
-            owner: msg.sender,
-            assetId: assetId,
-            verified: true,
-            timestamp: uint64(block.timestamp),
-            proofHash: proofHash
-        });
-        
-        // Emit event
-        emit OwnershipVerified(assetId, true, uint64(block.timestamp));
-        
-        return proofHash;
-    }
-    
-    /**
-     * Check if an ownership verification is valid
-     * Can be called by anyone to check if a verification is still valid
-     */
-    function checkVerification(address owner, bytes32 assetId, bytes32 proofHash) 
-        external 
-        view 
-        returns (bool isValid, uint64 expiryTime) 
-    {
-        OwnershipProof storage proof = ownershipProofs[owner][assetId];
-        
-        // Check if the verification exists and matches the proof hash
-        if (proof.verified && proof.proofHash == proofHash) {
-            uint64 expiryTimestamp = proof.timestamp + VERIFICATION_VALIDITY_PERIOD;
-            bool stillValid = block.timestamp <= expiryTimestamp;
-            
-            return (stillValid, expiryTimestamp);
-        }
-        
-        return (false, 0);
-    }
-    
-    /**
-     * Internal function to validate a zero-knowledge proof
-     * In a real implementation, this would use Midnight's ZK-proof system
-     */
-    function validateProof(
-        address owner, 
-        bytes32 assetId, 
-        uint256 minAmount, 
-        bytes calldata zkProof
-    ) internal pure returns (bool) {
-        // This is a placeholder implementation
-        // In the real contract, this would use Midnight's ZK proof verification
-        
-        // The proof should demonstrate that the user has at least minAmount of the asset
-        // without revealing the actual balance
-        
-        // For the hackathon demo, we assume the proof is valid if it's not empty
-        return zkProof.length > 0;
-    }
-    
-    /**
-     * Revoke a verification
-     * Only the owner can revoke their own verification
-     */
-    function revokeVerification(bytes32 assetId) external {
-        require(ownershipProofs[msg.sender][assetId].verified, "No active verification found");
-        
-        // Revoke the verification
-        ownershipProofs[msg.sender][assetId].verified = false;
-        
-        // Emit event
-        emit VerificationExpired(assetId, uint64(block.timestamp));
-    }
+    return [stillValid, expiryTimestamp];
+  }
+  
+  return [false, 0];
+}
+
+/**
+ * Internal function to validate a zero-knowledge proof
+ * In a real implementation, this would use Midnight's ZK-proof system
+ */
+circuit validateProof(
+  owner: Address, 
+  assetId: Bytes<32>, 
+  minAmount: Uint<256>, 
+  zkProof: Bytes<>
+): Bool {
+  // This is a placeholder implementation
+  // In the real contract, this would use Midnight's ZK proof verification
+  
+  // The proof should demonstrate that the user has at least minAmount of the asset
+  // without revealing the actual balance
+  
+  // For the hackathon demo, we assume the proof is valid if it's not empty
+  return zkProof.length() > 0;
+}
+
+/**
+ * Revoke a verification
+ * Only the owner can revoke their own verification
+ */
+export circuit revokeVerification(assetId: Bytes<32>): [] {
+  // Ensure the owner map exists
+  assert(ownershipProofs.has(msg.sender), "No active verification found");
+  
+  let ownerMap = ownershipProofs.get(msg.sender);
+  
+  // Ensure the asset record exists
+  assert(ownerMap.has(assetId), "No active verification found");
+  
+  let proof = ownerMap.get(assetId);
+  assert(proof.verified, "No active verification found");
+  
+  // Revoke the verification
+  proof.verified = false;
+  ownerMap.set(assetId, proof);
+  ownershipProofs.set(msg.sender, ownerMap);
+  
+  // Emit event
+  event("VerificationExpired", [assetId, now()]);
 }
