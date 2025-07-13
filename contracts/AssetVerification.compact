@@ -3,7 +3,7 @@
  * SilentLedger - Midnight Mini DApp Hackathon
  * 
  * This smart contract handles asset ownership verification
- * using Midnight's privacy features and zero-knowledge proofs.
+ * using Midnight's privacy features and zero-knowledge proofs. This asset ownership verification is intended to disincentivize front running and short selling.    
  */
 
 pragma language_version 0.15;
