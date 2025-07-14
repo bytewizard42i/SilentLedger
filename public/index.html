@@ -396,11 +396,16 @@
         </div>
     </section>
 
+    <!-- God Windows - Developer Tools Section -->
+    <section id="god-windows-section" class="god-windows-container disabled">
+        <!-- God Windows will be injected here by JavaScript -->
+    </section>
+    
     <footer>
         <div class="footer-content">
             <p>SilentLedger - Midnight Mini DApp Hackathon</p>
-            <!-- God Mode Toggle Button -->
-            <button id="god-mode-button" class="god-mode-toggle">GOD MODE</button>
+            <!-- Dev Mode Toggle Button -->
+            <button id="dev-mode-button" class="dev-mode-toggle">DEV MODE</button>
             <p>Powered by Midnight blockchain technology</p>
         </div>
     </footer>
@@ -412,17 +417,18 @@
     <script src="cli.js"></script>
     <script src="god-windows.js"></script>
     <script>
-        // Initialize God Mode Button
-        document.getElementById('god-mode-button').addEventListener('click', function() {
-            const godWindowsContainer = document.querySelector('.god-windows-container');
+        // Initialize Dev Mode Button
+        document.getElementById('dev-mode-button').addEventListener('click', function() {
+            const godWindowsContainer = document.getElementById('god-windows-section');
             if (godWindowsContainer) {
+                const isCurrentlyDisabled = godWindowsContainer.classList.contains('disabled');
                 godWindowsContainer.classList.toggle('disabled');
                 this.classList.toggle('active');
-            } else {
-                // Initialize if not yet initialized
-                if (window.GodWindows) {
+                
+                // Initialize on first enable
+                if (isCurrentlyDisabled && !godWindowsContainer.innerHTML.trim() && window.GodWindows) {
                     window.GodWindows.init();
-                    this.classList.add('active');
+                    window.GodWindows.updateCurrentActivity("Dev Mode activated");
                 }
             }
         });

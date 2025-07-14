@@ -4,25 +4,28 @@
  */
 
 .god-windows-container {
-  position: fixed;
-  top: 0;
-  left: 0;
+  position: relative;
   width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.85);
-  z-index: 9999;
+  background-color: rgba(10, 10, 10, 0.95);
+  z-index: 100;
   color: #e0e0e0;
   font-family: 'Space Mono', monospace;
-  overflow-y: auto;
-  backdrop-filter: blur(5px);
   padding: 1rem;
   box-sizing: border-box;
-  transition: transform 0.3s ease, opacity 0.3s ease;
+  border-top: 3px solid #2196F3;
+  transition: max-height 0.5s ease, opacity 0.3s ease;
+  max-height: 600px;
+  overflow-y: auto;
+  margin-top: 2rem;
 }
 
 .god-windows-container.disabled {
-  transform: translateY(100%);
+  max-height: 0;
   opacity: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  margin: 0;
   pointer-events: none;
 }
 
@@ -121,7 +124,7 @@ input:checked + .slider:before {
 /* Grid Layout */
 .god-windows-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1rem;
   max-width: 1400px;
   margin: 0 auto;
@@ -133,7 +136,7 @@ input:checked + .slider:before {
   border: 2px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   padding: 0;
-  height: 300px;
+  height: 250px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -403,17 +406,16 @@ input:checked + .slider:before {
   border-color: rgba(0, 128, 255, 0.7) !important;
 }
 
-/* God Mode Button */
-.god-mode-toggle {
+/* Dev Mode Button */
+.dev-mode-toggle {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  background: linear-gradient(45deg, #ff5f6d, #f99185);
+  background: linear-gradient(45deg, #2196F3, #4fc3f7);
   color: white;
   border: none;
-  border-radius: 50%;
-  width: 60px;
-  height: 60px;
+  border-radius: 4px;
+  padding: 8px 16px;
   font-size: 0.8rem;
   font-weight: bold;
   cursor: pointer;
@@ -425,12 +427,12 @@ input:checked + .slider:before {
   transition: all 0.3s ease;
 }
 
-.god-mode-toggle:hover {
-  transform: scale(1.05);
+.dev-mode-toggle:hover {
+  transform: translateY(-2px);
   box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
 }
 
-.god-mode-toggle.active {
+.dev-mode-toggle.active {
   background: linear-gradient(45deg, #00c853, #64dd17);
 }
 
@@ -446,17 +448,17 @@ input:checked + .slider:before {
 }
 
 /* Opening animation */
-@keyframes slideIn {
+@keyframes slideDown {
   from {
-    transform: translateY(100%);
+    max-height: 0;
     opacity: 0;
   }
   to {
-    transform: translateY(0);
+    max-height: 600px;
     opacity: 1;
   }
 }
 
-.god-windows-container {
-  animation: slideIn 0.5s ease forwards;
+.god-windows-container:not(.disabled) {
+  animation: slideDown 0.5s ease forwards;
 }

@@ -43,17 +43,21 @@ let godWindowsElements = {
 
 // Initialize God Windows
 function initGodWindows() {
-  console.log("Initializing God Windows...");
+  console.log("Initializing Dev Mode windows...");
   
-  // Create God Windows container and add to DOM
-  const container = document.createElement('div');
-  container.className = 'god-windows-container';
+  // Use the existing container
+  const container = document.getElementById('god-windows-section');
+  if (!container) {
+    console.error("Could not find god-windows-section container");
+    return;
+  }
+  
   container.innerHTML = `
     <div class="god-windows-header">
-      <h2>⚡ SunExchange "God Windows" Mode</h2>
+      <h2>⚡ SunExchange Developer Tools</h2>
       <p>See the Shadows Dance - Developer View of ZK Proofs and Privacy Flows</p>
       <div class="god-windows-toggle">
-        <span>Developer Mode</span>
+        <span>Enable Visualizations</span>
         <label class="switch">
           <input type="checkbox" id="god-windows-toggle" checked>
           <span class="slider round"></span>
@@ -133,7 +137,7 @@ function initGodWindows() {
     </div>
   `;
   
-  document.body.appendChild(container);
+  // Container already exists in the DOM
   
   // Store references to DOM elements
   godWindowsElements = {
@@ -740,7 +744,7 @@ function hashString(str) {
   return '0x' + (hash >>> 0).toString(16).padStart(8, '0');
 }
 
-// Export God Windows API
+// Export Dev Mode API
 window.GodWindows = {
   init: initGodWindows,
   updateCurrentActivity,
@@ -753,7 +757,6 @@ window.GodWindows = {
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
-  initGodWindows();
+  // Don't initialize immediately, wait for button click
   hookIntoApiCalls();
-  updateCurrentActivity("God Windows initialized and ready");
 });
