@@ -6,6 +6,7 @@
     <title>SilentLedger - Privacy-Preserving Orderbook</title>
     <meta name="description" content="A demonstration of privacy-preserving orderbook technology using Midnight blockchain's zero-knowledge proofs and commitment schemes to prevent front-running attacks while maintaining market transparency.">
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="god-windows.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap">
 </head>
 <body>
@@ -398,6 +399,8 @@
     <footer>
         <div class="footer-content">
             <p>SilentLedger - Midnight Mini DApp Hackathon</p>
+            <!-- God Mode Toggle Button -->
+            <button id="god-mode-button" class="god-mode-toggle">GOD MODE</button>
             <p>Powered by Midnight blockchain technology</p>
         </div>
     </footer>
@@ -407,5 +410,22 @@
     <script src="midnight-wallet.js"></script>
     <script src="app.js"></script>
     <script src="cli.js"></script>
+    <script src="god-windows.js"></script>
+    <script>
+        // Initialize God Mode Button
+        document.getElementById('god-mode-button').addEventListener('click', function() {
+            const godWindowsContainer = document.querySelector('.god-windows-container');
+            if (godWindowsContainer) {
+                godWindowsContainer.classList.toggle('disabled');
+                this.classList.toggle('active');
+            } else {
+                // Initialize if not yet initialized
+                if (window.GodWindows) {
+                    window.GodWindows.init();
+                    this.classList.add('active');
+                }
+            }
+        });
+    </script>
 </body>
 </html>
