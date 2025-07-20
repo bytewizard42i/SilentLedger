@@ -1,0 +1,483 @@
+/**
+ * SilentLedger Advanced Features Styles
+ * CSS for market orders, mobile enhancements, and export features
+ */
+
+/* Market Order Warning */
+.market-order-warning {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #ff6b35, #f7931e);
+  border: 1px solid #ff6b35;
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+  animation: slideIn 0.3s ease-out;
+}
+
+.warning-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.warning-text strong {
+  font-weight: 600;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Order Details Modal */
+.order-details-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.order-details-content {
+  background: var(--bg-secondary, #1a1a1a);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  color: var(--text-primary, #ffffff);
+}
+
+.order-details-content h3 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--accent-color, #00d4ff);
+}
+
+.order-info {
+  margin-bottom: 20px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-color, #333);
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  font-weight: 500;
+  color: var(--text-secondary, #cccccc);
+}
+
+.info-value {
+  font-weight: 600;
+  color: var(--text-primary, #ffffff);
+}
+
+.info-value.success {
+  color: #4ade80;
+}
+
+.close-details {
+  width: 100%;
+  padding: 12px;
+  background: var(--accent-color, #00d4ff);
+  color: var(--bg-primary, #000000);
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.close-details:hover {
+  background: var(--accent-hover, #00b8e6);
+  transform: translateY(-1px);
+}
+
+/* Price Animation */
+.current-price {
+  transition: all 0.3s ease;
+  font-weight: 600;
+}
+
+.current-price.price-up {
+  color: #4ade80 !important;
+  transform: scale(1.05);
+}
+
+.current-price.price-down {
+  color: #ef4444 !important;
+  transform: scale(1.05);
+}
+
+/* Mobile Navigation */
+.mobile-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-secondary, #1a1a1a);
+  border-top: 1px solid var(--border-color, #333);
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 0;
+  z-index: 1000;
+}
+
+.mobile-nav .nav-item {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #cccccc);
+  font-size: 12px;
+  padding: 8px 4px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 60px;
+}
+
+.mobile-nav .nav-item:hover,
+.mobile-nav .nav-item.active {
+  color: var(--accent-color, #00d4ff);
+}
+
+/* Export/Import Section */
+.export-section,
+.import-section {
+  margin-top: 20px;
+  padding: 16px;
+  background: var(--bg-tertiary, #2a2a2a);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 8px;
+}
+
+.export-section h4,
+.import-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #ffffff);
+}
+
+.export-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.export-btn,
+.import-btn {
+  padding: 8px 12px;
+  background: var(--bg-secondary, #1a1a1a);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 4px;
+  color: var(--text-primary, #ffffff);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.export-btn:hover,
+.import-btn:hover {
+  background: var(--accent-color, #00d4ff);
+  color: var(--bg-primary, #000000);
+  border-color: var(--accent-color, #00d4ff);
+}
+
+/* Performance Indicators */
+.performance-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--bg-tertiary, #2a2a2a);
+  border-radius: 12px;
+  font-size: 11px;
+  color: var(--text-secondary, #cccccc);
+}
+
+.performance-indicator.good {
+  background: rgba(74, 222, 128, 0.1);
+  color: #4ade80;
+}
+
+.performance-indicator.warning {
+  background: rgba(251, 191, 36, 0.1);
+  color: #fbbf24;
+}
+
+.performance-indicator.error {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+/* Touch Optimizations */
+@media (max-width: 768px) {
+  /* Larger touch targets */
+  button,
+  input[type="button"],
+  input[type="submit"] {
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
+  
+  /* Better spacing for mobile */
+  .market-order-warning {
+    margin: 8px;
+    padding: 16px;
+  }
+  
+  .order-details-content {
+    margin: 20px;
+    padding: 20px;
+  }
+  
+  /* Mobile-specific export buttons */
+  .export-buttons {
+    flex-direction: column;
+  }
+  
+  .export-btn,
+  .import-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 14px;
+  }
+  
+  /* Add bottom padding to account for mobile nav */
+  body {
+    padding-bottom: 80px;
+  }
+}
+
+/* Swipe Gesture Feedback */
+.swipe-feedback {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  z-index: 9999;
+  animation: swipeFeedback 0.5s ease-out;
+}
+
+@keyframes swipeFeedback {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.05);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* Advanced Analytics Widgets */
+.analytics-widget {
+  background: var(--bg-tertiary, #2a2a2a);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.analytics-widget h5 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-color, #00d4ff);
+}
+
+.analytics-chart {
+  height: 100px;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    var(--accent-color, #00d4ff) 50%,
+    transparent 100%
+  );
+  opacity: 0.1;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.analytics-chart::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* Volume Analysis */
+.volume-bar {
+  height: 4px;
+  background: var(--bg-secondary, #1a1a1a);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 4px 0;
+}
+
+.volume-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-color, #00d4ff), #4ade80);
+  transition: width 0.3s ease;
+}
+
+/* Market Data Ticker */
+.market-ticker {
+  background: var(--bg-secondary, #1a1a1a);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin: 8px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.ticker-symbol {
+  font-weight: 600;
+  color: var(--text-primary, #ffffff);
+}
+
+.ticker-price {
+  font-weight: 600;
+  color: var(--accent-color, #00d4ff);
+}
+
+.ticker-change {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+.ticker-change.positive {
+  background: rgba(74, 222, 128, 0.1);
+  color: #4ade80;
+}
+
+.ticker-change.negative {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+/* Responsive Design Improvements */
+@media (max-width: 480px) {
+  .analytics-widget {
+    padding: 12px;
+  }
+  
+  .market-ticker {
+    flex-direction: column;
+    gap: 4px;
+    text-align: center;
+  }
+  
+  .export-section,
+  .import-section {
+    margin: 12px 8px;
+    padding: 12px;
+  }
+}
+
+/* Dark Mode Enhancements */
+@media (prefers-color-scheme: dark) {
+  .market-order-warning {
+    background: linear-gradient(135deg, #dc2626, #ea580c);
+    border-color: #dc2626;
+  }
+  
+  .order-details-modal {
+    background: rgba(0, 0, 0, 0.9);
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .market-order-warning {
+    border-width: 2px;
+  }
+  
+  .export-btn,
+  .import-btn {
+    border-width: 2px;
+  }
+  
+  .mobile-nav {
+    border-top-width: 2px;
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .current-price,
+  .export-btn,
+  .import-btn,
+  .close-details {
+    transition: none;
+  }
+  
+  .analytics-chart::after {
+    animation: none;
+  }
+  
+  .slideIn-animation,
+  .swipeFeedback-animation,
+  .shimmer-animation {
+    animation-duration: 0.01ms !important;
+  }
+}
