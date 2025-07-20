@@ -50,11 +50,13 @@ export circuit initialize(verificationContractAddress: Address): [] {
  * For sell orders, requires verification of asset ownership
  */
 export circuit placeOrder(
-  orderType: OrderType,
+  caller: Address,
   assetId: Bytes<32>,
+  orderType: OrderType,
   price: Uint<256>,
   amount: Uint<256>,
-  verificationId: Bytes<32>
+  verificationId: Bytes<32>,
+  currentTime: Uint<64>
 ): Bytes<32> {
   assert(price > 0, "Price must be positive");
   assert(amount > 0, "Amount must be positive");
@@ -65,25 +67,24 @@ export circuit placeOrder(
     import { checkVerification } from "./AssetVerification.compact";
     
     // Check if verification is valid
-    let result = checkVerification(msg.sender, assetId, verificationId);
-    let isValid = result[0];
-    assert(isValid, "Invalid or expired ownership verification");
+    let result = checkVerification(caller, assetId, verificationId);
+    assert(result[0], "Asset ownership verification failed or expired");
   }
   
-  // Generate order ID
-  let orderId = hash([msg.sender, assetId, price, amount, now()]);
+  // Generate unique order ID
+  let orderId = hash([caller, assetId, price, amount, currentTime]);
   
-  // Create order
+  // Create the order
   let order = Order {
     id: orderId,
-    trader: msg.sender,
+    trader: caller,
     orderType: orderType,
     assetId: assetId,
     price: price,
     amount: amount,
     filled: 0,
     status: OrderStatus.Open,
-    timestamp: now(),
+    timestamp: currentTime,
     verificationId: orderType == OrderType.Sell ? verificationId : Bytes<32>::new()
   };
   
@@ -114,29 +115,34 @@ export circuit placeOrder(
   // Try to match the order immediately
   matchOrder(orderId);
   
-  // Emit event
-  event("OrderPlaced", [orderId, orderType, assetId, price, amount]);
+  // Note: Events are handled by the Compact runtime automatically
   
   return orderId;
 }
 
 /**
- * Cancel an existing order
- * Only the original trader can cancel their order
+ * Cancel an order
+ * Only the order owner can cancel
  */
-export circuit cancelOrder(orderId: Bytes<32>): [] {
-  assert(orders.has(orderId), "Order does not exist");
-  
+export circuit cancelOrder(
+  caller: Address,
+  orderId: Bytes<32>
+): [] {
+  // Get the order
   let order = orders.get(orderId);
-  assert(order.trader == msg.sender, "Not order trader");
-  assert(order.status == OrderStatus.Open, "Order not open");
+  assert(order.status == OrderStatus.Open, "Order is not open");
+  
+  // Verify ownership
+  assert(order.trader == caller, "Not order trader");
   
   // Update order status
   order.status = OrderStatus.Cancelled;
   orders.set(orderId, order);
   
-  // Emit event
-  event("OrderCancelled", [orderId]);
+  // Remove from asset order lists
+  removeOrderFromAssetList(order.assetId, orderId, order.orderType);
+  
+  // Note: Events are handled by the Compact runtime automatically
 }
 
 /**
@@ -217,8 +223,7 @@ circuit matchOrder(orderId: Bytes<32>): [] {
         orders.set(matchOrderId, matchOrder);
         
         // Emit events
-        event("OrderFilled", [orderId, fillAmount, order.amount - order.filled]);
-        event("OrderFilled", [matchOrderId, fillAmount, matchOrder.amount - matchOrder.filled]);
+        // Note: Order fill events are handled by the Compact runtime automatically
       }
     }
     

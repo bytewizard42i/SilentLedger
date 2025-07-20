@@ -117,19 +117,28 @@ const MidnightWallet = (function() {
         throw new Error("Wallet not connected");
       }
       
+      // Get current timestamp for the circuit
+      const currentTime = Math.floor(Date.now() / 1000); // Unix timestamp in seconds
+      
       // This would use the Mesh SDK to create a zero-knowledge proof of asset ownership
+      // Updated to match the corrected Compact contract signature:
+      // verifyOwnership(caller: Address, assetId: Bytes<32>, minAmount: Uint<256>, zkProof: Bytes<>, currentTime: Uint<64>)
       const verificationResult = await window.meshSDK.midnight.createProof({
         type: 'assetOwnership',
         params: {
+          caller: walletState.address, // Pass wallet address as caller
           assetId,
-          amount
+          minAmount: amount,
+          currentTime // Pass current timestamp
         }
       });
       
       return {
         verified: verificationResult.success,
         verificationId: verificationResult.proofId,
-        proof: verificationResult.proof
+        proof: verificationResult.proof,
+        caller: walletState.address,
+        timestamp: currentTime
       };
     } catch (error) {
       console.error("Error verifying ownership:", error);

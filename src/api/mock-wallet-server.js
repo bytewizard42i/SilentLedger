@@ -88,91 +88,123 @@ app.get('/api/wallet/:wallet/balance', (req, res) => {
 });
 
 // Verify ownership of an asset
+// Updated to match Compact contract signature: verifyOwnership(caller: Address, assetId: Bytes<32>, minAmount: Uint<256>, zkProof: Bytes<>, currentTime: Uint<64>)
 app.post('/api/wallet/:wallet/verify-ownership', (req, res) => {
   const { wallet } = req.params;
-  const { assetId, amount } = req.body;
+  const { caller, assetId, minAmount, currentTime } = req.body;
   
   if (!wallets[wallet]) {
     return res.status(404).json({ error: 'Wallet not found' });
   }
   
-  if (!assetId || amount === undefined) {
-    return res.status(400).json({ error: 'Missing required fields' });
+  if (!caller || !assetId || minAmount === undefined || !currentTime) {
+    return res.status(400).json({ error: 'Missing required fields: caller, assetId, minAmount, currentTime' });
+  }
+  
+  // Validate that the caller matches the wallet (in a real system, this would be cryptographically verified)
+  const expectedAddress = wallets[wallet].address;
+  if (caller !== expectedAddress && caller !== `mock-address-${wallet}`) {
+    return res.status(403).json({ error: 'Caller address does not match wallet' });
   }
   
   // Check if wallet has sufficient balance of the asset
-  const hasAsset = wallets[wallet].balance[assetId] >= amount;
+  const hasAsset = wallets[wallet].balance[assetId] >= minAmount;
   
-  // Generate a verification ID
-  const verificationId = `verify-${wallet}-${assetId}-${Date.now()}`;
+  // Generate a verification ID (proof hash equivalent)
+  const verificationId = `verify-${caller.slice(-8)}-${assetId}-${currentTime}`;
   
-  // Store verification result
+  // Store verification result with updated parameters
   verifications[verificationId] = {
+    caller,
     wallet,
     assetId,
-    amount,
+    minAmount,
     verified: hasAsset,
-    timestamp: new Date()
+    timestamp: new Date(currentTime * 1000), // Convert from Unix timestamp
+    currentTime
   };
   
-  // Return verification result
+  // Return verification result matching the expected Compact contract response
   res.json({
     success: true,
     verified: hasAsset,
     verificationId,
+    caller,
+    timestamp: currentTime,
     // Only return public information - a real ZK system wouldn't reveal these details
     publicData: {
       assetId,
       verificationId,
-      verified: hasAsset
+      verified: hasAsset,
+      timestamp: currentTime
     }
   });
 });
 
 // Create an order
+// Updated to match Compact contract signature: placeOrder(caller: Address, assetId: Bytes<32>, orderType: OrderType, price: Uint<256>, amount: Uint<256>, verificationId: Bytes<32>, currentTime: Uint<64>)
 app.post('/api/orders', async (req, res) => {
-  const { wallet, orderType, assetId, price, amount, verificationId } = req.body;
+  const { caller, assetId, orderType, price, amount, verificationId, currentTime, side } = req.body;
   
-  if (!wallets[wallet]) {
-    return res.status(404).json({ error: 'Wallet not found' });
+  if (!caller || !assetId || !orderType || price === undefined || amount === undefined || !currentTime) {
+    return res.status(400).json({ error: 'Missing required fields: caller, assetId, orderType, price, amount, currentTime' });
   }
   
-  if (!orderType || !assetId || price === undefined || amount === undefined) {
-    return res.status(400).json({ error: 'Missing required fields' });
+  // Find wallet by caller address
+  let walletKey = null;
+  for (const [key, wallet] of Object.entries(wallets)) {
+    if (wallet.address === caller || caller === `mock-address-${key}`) {
+      walletKey = key;
+      break;
+    }
+  }
+  
+  if (!walletKey || !wallets[walletKey]) {
+    return res.status(404).json({ error: 'Wallet not found for caller address' });
   }
   
   // For sell orders, verify ownership
   if (orderType === 'sell') {
-    // Verification ID required for sell orders
-    if (!verificationId || !verifications[verificationId]) {
+    // Verification ID required for sell orders (empty bytes32 for buy orders)
+    if (!verificationId || verificationId === '0x0000000000000000000000000000000000000000000000000000000000000000') {
       return res.status(400).json({ error: 'Valid ownership verification required for sell orders' });
+    }
+    
+    if (!verifications[verificationId]) {
+      return res.status(400).json({ error: 'Verification ID not found' });
     }
     
     const verification = verifications[verificationId];
     
-    // Verify the verification is for the same wallet, asset, and sufficient amount
-    if (verification.wallet !== wallet || 
+    // Verify the verification is for the same caller, asset, and sufficient amount
+    if (verification.caller !== caller || 
         verification.assetId !== assetId || 
-        verification.amount < amount || 
+        verification.minAmount < amount || 
         !verification.verified) {
       return res.status(403).json({ error: 'Ownership verification failed' });
     }
   }
   
+  // Generate order ID (similar to how Compact contract would hash parameters)
+  const orderId = `order-${caller.slice(-8)}-${assetId}-${currentTime}-${nextOrderId++}`;
+  
   // Create the order
   const order = {
-    id: nextOrderId++,
-    wallet,
+    id: orderId,
+    caller,
+    wallet: walletKey,
     orderType,
     assetId,
-    price,
-    amount,
-    timestamp: new Date(),
-    status: 'open'
+    price: parseFloat(price),
+    amount: parseInt(amount),
+    timestamp: new Date(currentTime * 1000), // Convert from Unix timestamp
+    currentTime,
+    status: 'open',
+    side: side || 'private' // Track which side (private/public) the order is for
   };
   
   // Add verification details for sell orders
-  if (orderType === 'sell') {
+  if (orderType === 'sell' && verificationId !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
     order.verificationId = verificationId;
   }
   

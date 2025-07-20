@@ -10,6 +10,41 @@ const API_CONFIG = {
   useMockWallet: !window.meshSDK // Use mock wallet if Mesh SDK is not available
 };
 
+// Helper functions for Compact contract integration
+function getCurrentTimestamp() {
+  return Math.floor(Date.now() / 1000); // Unix timestamp in seconds for Compact circuits
+}
+
+function getWalletAddress() {
+  return appState.wallet || 'mock-address-user1'; // Return actual wallet address or mock
+}
+
+// Dashboard integration helpers
+function updateDashboardStats(type, data) {
+  if (window.tradingDashboard) {
+    switch (type) {
+      case 'trade':
+        window.tradingDashboard.recordTrade(data);
+        break;
+      case 'verification':
+        window.tradingDashboard.addActivity({
+          text: `Asset verification ${data.success ? 'successful' : 'failed'} for ${data.amount} ${data.asset}`,
+          status: data.success ? 'success' : 'error'
+        });
+        break;
+      case 'frontrun':
+        window.tradingDashboard.recordFrontRunAttempt(data.blocked);
+        break;
+      case 'connection':
+        window.tradingDashboard.addActivity({
+          text: data.connected ? 'Wallet connected successfully' : 'Wallet disconnected',
+          status: data.connected ? 'success' : 'warning'
+        });
+        break;
+    }
+  }
+}
+
 // State management
 const appState = {
   wallet: null,
@@ -219,6 +254,8 @@ async function connectWallet() {
         appState.connected = true;
         
         updateWalletUI();
+        updateDashboardStats('connection', { connected: true });
+        
         showNotification('Lace Wallet connected successfully', 'success');
       } catch (walletError) {
         showNotification('Failed to connect to Lace Wallet: ' + walletError.message, 'error');
@@ -322,11 +359,19 @@ async function handleVerification(event, side) {
     let data;
     
     if (API_CONFIG.useMockWallet) {
-      // Call the mock verification API
+      // Call the mock verification API with updated parameters for Compact contract
+      const currentTime = getCurrentTimestamp();
+      const caller = getWalletAddress();
+      
       const response = await fetch(`${API_CONFIG.mockWallet}/api/wallet/${appState.wallet ? 'user1' : 'guest'}/verify-ownership`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assetId, amount })
+        body: JSON.stringify({ 
+          caller,           // Address parameter for Compact contract
+          assetId, 
+          minAmount: amount, // Updated parameter name to match Compact contract
+          currentTime       // Timestamp parameter for Compact contract
+        })
       });
       
       data = await response.json();
@@ -334,13 +379,16 @@ async function handleVerification(event, side) {
       // Use Midnight Lace Wallet for verification with zero-knowledge proofs
       try {
         // This uses the Mesh SDK to generate a zero-knowledge proof of asset ownership
+        // Updated to work with corrected Compact contract signature
         const verificationData = await MidnightWallet.verifyOwnership(assetId, amount);
         
         data = {
           success: true,
           verified: verificationData.verified,
           verificationId: verificationData.verificationId,
-          proof: verificationData.proof
+          proof: verificationData.proof,
+          caller: verificationData.caller,
+          timestamp: verificationData.timestamp
         };
       } catch (walletError) {
         console.error('Lace Wallet verification error:', walletError);
@@ -381,6 +429,14 @@ async function handleVerification(event, side) {
       if (side === 'private') {
         logVerification(assetId, amount, data.verified, data.verificationId);
       }
+      
+      // Update dashboard analytics
+      updateDashboardStats('verification', {
+        success: data.verified,
+        amount: amount,
+        asset: assetId,
+        side: side
+      });
       
       // Show notification
       showNotification(
@@ -593,15 +649,19 @@ async function handleOrderSubmission(event, side) {
     let data;
     
     if (API_CONFIG.useMockWallet) {
-      // Create the order through the mock API
+      // Create the order through the mock API with updated parameters for Compact contract
+      const currentTime = getCurrentTimestamp();
+      const caller = getWalletAddress();
+      
       let endpoint = `${API_CONFIG.mockWallet}/api/orders`;
       let orderData = {
+        caller,           // Address parameter for Compact contract
         assetId,
         orderType,
         price,
         amount,
-        walletAddress: appState.wallet.address,
-        side: side // Include which side (private/public) the order is for
+        currentTime,      // Timestamp parameter for Compact contract
+        side: side        // Include which side (private/public) the order is for
       };
       
       if (side === 'private' && orderType === 'sell' && verificationId) {
@@ -619,13 +679,22 @@ async function handleOrderSubmission(event, side) {
     } else {
       // Use Midnight Lace Wallet for transaction signing
       try {
-        // Format transaction for the Midnight blockchain
+        const currentTime = getCurrentTimestamp();
+        const caller = getWalletAddress();
+        
+        // Format transaction for the Midnight blockchain with corrected Compact contract signature
+        // placeOrder(caller: Address, assetId: Bytes<32>, orderType: OrderType, price: Uint<256>, amount: Uint<256>, verificationId: Bytes<32>, currentTime: Uint<64>)
         const transaction = {
-          type: 'order',
-          orderType: orderType,
-          assetId: assetId,
-          price: price.toString(),
-          amount: amount.toString(),
+          type: 'placeOrder',
+          params: {
+            caller: caller,
+            assetId: assetId,
+            orderType: orderType,
+            price: price.toString(),
+            amount: amount.toString(),
+            verificationId: verificationId || '0x0000000000000000000000000000000000000000000000000000000000000000', // Empty bytes32 for buy orders
+            currentTime: currentTime
+          },
           side: side, // private or public orderbook
           // For private orders, include the verification proof
           ...(side === 'private' && orderType === 'sell' && verificationId && {
