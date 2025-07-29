@@ -19,6 +19,61 @@ function getWalletAddress() {
   return appState.wallet || 'mock-address-user1'; // Return actual wallet address or mock
 }
 
+// Exchange rate utility functions
+function convertTokens(fromToken, toToken, amount) {
+  if (fromToken === toToken) return amount;
+  
+  const rateKey = `${fromToken}_TO_${toToken}`;
+  const rate = appState.exchangeRates[rateKey];
+  
+  if (rate) {
+    return amount * rate;
+  }
+  
+  // If direct rate not found, try inverse
+  const inverseKey = `${toToken}_TO_${fromToken}`;
+  const inverseRate = appState.exchangeRates[inverseKey];
+  
+  if (inverseRate) {
+    return amount / inverseRate;
+  }
+  
+  // Default to 1:1 if no rate found
+  return amount;
+}
+
+function getTokenDisplayPrice(tokenId, basePrice) {
+  const config = appState.tokenConfig[tokenId];
+  if (!config) return basePrice;
+  
+  // Apply the token's base price multiplier
+  return basePrice * config.basePrice;
+}
+
+function formatTokenAmount(amount, tokenId) {
+  const config = appState.tokenConfig[tokenId];
+  const decimals = config ? config.decimals : 18;
+  
+  // For display purposes, show reasonable precision
+  if (amount >= 1) {
+    return amount.toFixed(4);
+  } else {
+    return amount.toFixed(6);
+  }
+}
+
+function getExchangeRateDisplay(fromToken, toToken) {
+  const rate = convertTokens(fromToken, toToken, 1);
+  const fromConfig = appState.tokenConfig[fromToken];
+  const toConfig = appState.tokenConfig[toToken];
+  
+  if (fromConfig && toConfig) {
+    return `1 ${fromConfig.symbol} = ${formatTokenAmount(rate, toToken)} ${toConfig.symbol}`;
+  }
+  
+  return `1 ${fromToken} = ${rate} ${toToken}`;
+}
+
 // Dashboard integration helpers
 function updateDashboardStats(type, data) {
   if (window.tradingDashboard) {
@@ -45,6 +100,30 @@ function updateDashboardStats(type, data) {
   }
 }
 
+// Token configuration and exchange rates
+const TOKEN_CONFIG = {
+  'TOKEN-X': {
+    name: 'Token X',
+    symbol: 'X',
+    decimals: 18,
+    basePrice: 1.0, // Base reference price
+    description: 'Privacy-preserving premium token'
+  },
+  'TOKEN-Y': {
+    name: 'Token Y', 
+    symbol: 'Y',
+    decimals: 18,
+    basePrice: 0.01, // 100 Y = 1 X, so Y = 0.01 X
+    description: 'Utility token for comparison'
+  }
+};
+
+// Exchange rate: 100 Token Y = 1 Token X
+const EXCHANGE_RATES = {
+  'TOKEN-Y_TO_TOKEN-X': 0.01, // 1 Y = 0.01 X
+  'TOKEN-X_TO_TOKEN-Y': 100   // 1 X = 100 Y
+};
+
 // State management
 const appState = {
   wallet: null,
@@ -54,7 +133,9 @@ const appState = {
   orders: {
     'TOKEN-X': { bids: [], asks: [] },
     'TOKEN-Y': { bids: [], asks: [] }
-  }
+  },
+  exchangeRates: EXCHANGE_RATES,
+  tokenConfig: TOKEN_CONFIG
 };
 
 // DOM Elements
