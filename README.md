@@ -122,9 +122,24 @@ await fetch('/api/orders', {
 - Avoid disclosing witness/private data; only derived/public-safe values are returned or stored (e.g., commitments, hashes). If intentional disclosure is required, wrap with `disclose(...)` per Compact specs.
 - Consider adding signature-based API auth to the mock/off-chain proof server to prevent tampering.
 
+### API Signing (dev mock server)
+
+- Middleware `verifyRequest` protects `POST /api/orders` in `src/api/mock-wallet-server.js`.
+- Headers required:
+  - `x-client`: client identifier (Ed25519 pubkey base64 when in ed25519 mode)
+  - `x-timestamp`: seconds since epoch
+  - `x-nonce`: unique per request
+  - `x-sig`: signature over preimage
+- Preimage: `DOMAIN_TAG | METHOD | PATH | sha256(canonicalJSON(body)) | timestamp | nonce`.
+- Modes: `SIGNING_MODE=ed25519` (preferred) or `hmac` via `.env`.
+- Config in `.env` (see `.env.example`). Helpers live in:
+  - `src/api/crypto/` (canonicalize, nonce LRU, signature verification)
+  - `src/api/middleware/verifyRequest.js`
+
+
 ## Architecture Diagram
 
-An architecture diagram placeholder exists in the docs; replace with a diagram illustrating:
+An architecture diagram source is at `media/architecture.mmd`. Export to `media/architecture.svg` for docs. It illustrates:
 
 - Frontend (UI, Mesh SDK wallet integration)
 - Contracts: `AssetVerification`, `ObfuscatedOrderbook`, `SilentOrderbook`

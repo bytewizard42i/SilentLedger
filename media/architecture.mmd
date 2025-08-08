@@ -1,0 +1,12 @@
+flowchart TD
+    W[Wallet (Lace/Midnight)] -->|CIP-30| FE[Frontend]
+    FE -->|signed POST /api/orders| API[Mock Wallet Server]
+    API -->|verifyRequest (ed25519/hmac)| SEC[Sig + Nonce Check]
+    SEC --> OK{OK?}
+    OK -- yes --> TX[Tx Build + Sim]
+    OK -- no --> ERR[401/409]
+    TX --> L[Ledger (Midnight)]
+    subgraph Docs
+      DT[Domain Tags Table]
+      DN[disclose() rationale]
+    end

@@ -106,3 +106,40 @@ const TOKEN_CONFIG = {
 ---
 
 **Status**: Ready for demonstration and further development 🌟
+
+---
+
+## Session: Repo Upgrade to Compact 0.15 + Verification Fixes
+**Date**: 2025-08-08  
+**Focus**: Fix `checkVerification` expiry logic, align interfaces, improve docs
+
+---
+
+### 🎯 **Session Objectives Completed**
+
+- **Contracts**:
+  - `contracts/AssetVerification.compact`: Added `currentTime` to `checkVerification(owner, assetId, proofHash, currentTime)`; compute `stillValid` using `VERIFICATION_VALIDITY_PERIOD`; guarded `usedProofs.get` with `has()`.
+  - `contracts/ObfuscatedOrderbook.compact`: Moved `checkVerification` import to top-level; pass `currentTime` in `placeOrder`.
+  - `contracts/SilentOrderbook.compact`: No change required.
+- **Frontend/Server**: Already aligned with signatures; verified references in `public/midnight-wallet.js` and `src/api/mock-wallet-server.js`.
+- **Docs**: `README.md` updated with Compatibility (Compact 0.15), Developer Quick Start, Example Usage, Security considerations, Architecture notes.
+
+---
+
+### 🤝 **Prompts & Answers (Summary)**
+
+- Q: “Bring contracts up to latest Compact and fix any issues.”  
+  A: Upgraded to `pragma language_version 0.15`, added expiry enforcement in `checkVerification`, cleaned imports, and updated README.
+- Q: “Package the repo for Alice.”  
+  A: Will generate ZIP excluding `.git` and `node_modules`, and provide `ALICE_MESSAGES.md` handoff file.
+
+---
+
+### 📝 **Next Steps**
+- Add signature-based API auth to mock server (`src/api/mock-wallet-server.js`).
+- Provide architecture diagram in `media/` and link in README.
+- Confirm paths for myAlice/SoulSketch protocols for separate updates.
+
+---
+
+**Status**: Contracts and docs ready for Alice review ✅

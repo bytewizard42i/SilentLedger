@@ -27,10 +27,12 @@
   "license": "MIT",
   "dependencies": {
     "@meshsdk/midnight-react": "^0.0.4",
+    "@noble/hashes": "^1.4.0",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
-    "live-server": "^1.2.2"
+    "live-server": "^1.2.2",
+    "tweetnacl": "^1.0.3"
   },
   "devDependencies": {
     "nodemon": "^2.0.22"

@@ -6,6 +6,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
+const { verifyRequest } = require('./middleware/verifyRequest');
 
 const app = express();
 const PORT = process.env.MOCK_WALLET_PORT || 3001;
@@ -143,7 +144,7 @@ app.post('/api/wallet/:wallet/verify-ownership', (req, res) => {
 
 // Create an order
 // Updated to match Compact contract signature: placeOrder(caller: Address, assetId: Bytes<32>, orderType: OrderType, price: Uint<256>, amount: Uint<256>, verificationId: Bytes<32>, currentTime: Uint<64>)
-app.post('/api/orders', async (req, res) => {
+app.post('/api/orders', verifyRequest, async (req, res) => {
   const { caller, assetId, orderType, price, amount, verificationId, currentTime, side } = req.body;
   
   if (!caller || !assetId || !orderType || price === undefined || amount === undefined || !currentTime) {
