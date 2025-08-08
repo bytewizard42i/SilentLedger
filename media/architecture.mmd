@@ -1,12 +1,35 @@
 flowchart TD
-    W[Wallet (Lace/Midnight)] -->|CIP-30| FE[Frontend]
-    FE -->|signed POST /api/orders| API[Mock Wallet Server]
-    API -->|verifyRequest (ed25519/hmac)| SEC[Sig + Nonce Check]
-    SEC --> OK{OK?}
-    OK -- yes --> TX[Tx Build + Sim]
-    OK -- no --> ERR[401/409]
-    TX --> L[Ledger (Midnight)]
-    subgraph Docs
-      DT[Domain Tags Table]
-      DN[disclose() rationale]
-    end
+  subgraph Client[Frontend (public/)]
+    UI[index.html / app.js]
+    WalletJS[midnight-wallet.js<br/>+ optional signing.js]
+  end
+
+  subgraph MockAPI[Mock Wallet/API (src/api/)]
+    MWServer[mock-wallet-server.js<br/>(Express)]
+    VerifyMW[verifyRequest middleware<br/>(optional signing)]
+    ProofBridge[future: proof server bridge]
+  end
+
+  subgraph ProofSrv[Proof Server (optional)]
+    PS[proof-server.js<br/>(logs ZK-private metadata)]
+  end
+
+  subgraph Contracts[Compact Contracts (contracts/)]
+    AV[AssetVerification.compact<br/>checkVerification(..., currentTime)]
+    OO[ObfuscatedOrderbook.compact<br/>placeOrder(..., currentTime)]
+    SO[SilentOrderbook.compact]
+  end
+
+  UI -- CIP-30 / Lace --> WalletJS
+  WalletJS -- POST /api/... --> MWServer
+  MWServer -- (optional signed req) --> VerifyMW
+  MWServer -- (dev/demo logs) --> PS
+
+  MWServer -. submits tx / verifies ZK .-> Contracts
+  AV <--> OO
+  OO <--> SO
+
+  classDef svc fill:#0b3d,stroke:#0a2a,color:#fff
+  classDef file fill:#203a43,stroke:#0a2a,color:#fff
+  class Client,MockAPI,ProofSrv,Contracts svc
+  class UI,WalletJS,MWServer,VerifyMW,ProofBridge,PS,AV,OO,SO file

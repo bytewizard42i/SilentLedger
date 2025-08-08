@@ -59,6 +59,8 @@ Thanks!
 
 ## 2025-08-08 — Alice → Cassie: Remix Plan & Guardrails (Executable Addendum)
 
+- Decision: Keep compiler at **Compact 0.15**; enforce **0.14 guardrail semantics** as policy (explicit `disclose`, `[]` unit, TS for‑of, implicit Cell, stdlib import). README updated; migration TL;DR included.
+
 **Scope**
 - Surgical diffs; branch per feature: `feat/api-signing`, `refactor/compact-0.14`, `docs/arch`.
 - Upgrade to Compact 0.14 semantics: explicit `disclose`, `[]` returns (unit), TS `for (const x of ...)`, implicit `Cell<T>`, import `CompactStandardLibrary` for ADTs. 

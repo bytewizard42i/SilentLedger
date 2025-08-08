@@ -137,7 +137,100 @@ await fetch('/api/orders', {
   - `src/api/middleware/verifyRequest.js`
 
 
-## Architecture Diagram
+#### Domain Tags
+
+| Name        | Value         | Used In                          |
+|-------------|---------------|----------------------------------|
+| API Signing | `sunex:api:v1`| Request-signing preimage domain  |
+
+
+## Migration Guide & Version Alignment
+
+This codebase compiles with **Compact 0.15** while adopting the **0.14 privacy guardrails** by design:
+
+- **Intentional disclosure required**: any witness-derived value that flows to public state must be wrapped in `disclose(...)`.
+- **Unit return**: functions that return “nothing” use the empty tuple `[]`.
+- **Loop syntax**: `for (const x of y)` and `for (const i of m..n)`.
+- **Implicit Cells**: ledger fields are declared without `Cell<T>` and use assignment sugar.
+- **Standard Library import**: ledger ADTs come via the stdlib import.
+
+See “Compact 0.14 Migration Guide (TL;DR)” below for before/after snippets and rationale.
+
+
+## Compact 0.14 Migration Guide (TL;DR)
+
+**Breaking changes we adopted**
+- `disclose(...)` is required for any intentional witness→public leak.
+- `Void` is gone → use `[]` (unit), and `return;` implies `[]`.
+- `for` loops are TS‑style: `for (const x of v)` and `for (const i of m..n)`.
+- `Cell<T>` is implicit: write `ledger state: STATE` (not `Cell<STATE>`).
+- Ledger ADTs live in the stdlib → `import CompactStandardLibrary;` when needed.
+
+See the before/after below for the `disclose()` pattern.
+
+```compact
+// BEFORE (pre‑0.14 style) — illustrative only
+// Issues: implicit leak risk, Void return, old for-syntax, explicit Cell<STATE>
+enum STATE { vacant, occupied }
+
+ledger
+  state: Cell<STATE>;
+  poster: Cell<Bytes<32>>;
+
+witness local_secret_key(): Bytes<32>; // private
+
+export circuit post(new_message: Opaque<"string">): Void {
+  assert state.read() == STATE.vacant "Board occupied";
+
+  // Derive a public key from a *private* secret.
+  // Pre-0.14 compilers might allow this to flow into ledger without an error.
+  const pk = public_key(local_secret_key(), instance as Field as Bytes<32>);
+
+  poster.write(pk);          // <-- potential private→public leak
+  state.write(STATE.occupied);
+
+  // Old for syntax (range)
+  for i = 0 to 3 do {
+    // ...
+  }
+}
+```
+
+```compact
+// AFTER (Compact 0.14 compliant)
+import CompactStandardLibrary;
+
+enum STATE { vacant, occupied }
+
+ledger
+  state: STATE;            // Cell<> is implicit in 0.14
+  poster: Bytes<32>;
+
+witness local_secret_key(): Bytes<32>; // remains private
+
+// Unit return instead of Void; `return;` implies returning []
+export circuit post(new_message: Opaque<"string">): [] {
+  assert state == STATE.vacant "Board occupied";
+
+  // Derive the *public* value from the private witness.
+  // Make the boundary explicit by disclosing the *derived* public key (preferred).
+  const pk_public = disclose(
+    public_key(local_secret_key(), instance as Field as Bytes<32>)
+  );
+
+  poster = pk_public;       // now an explicit, intentional disclosure
+  state = STATE.occupied;
+
+  // TS-style loops
+  for (const i of 0..3) {
+    // ...
+  }
+  // implicit unit return
+}
+```
+
+## Architecture Overview
+![System Architecture](./media/architecture.mmd)
 
 An architecture diagram source is at `media/architecture.mmd`. Export to `media/architecture.svg` for docs. It illustrates:
 
