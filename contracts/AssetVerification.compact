@@ -46,7 +46,7 @@ export circuit verifyOwnership(
   let proofHash = hash([caller, assetId, minAmount, currentTime, zkProof]);
   
   // Ensure this proof hasn't been used before
-  let isUsed = usedProofs.get(proofHash);
+  let isUsed = usedProofs.has(proofHash) ? usedProofs.get(proofHash) : false;
   assert(!isUsed, "Proof already used");
   usedProofs.set(proofHash, true);
   
@@ -82,7 +82,8 @@ export circuit verifyOwnership(
 export circuit checkVerification(
   owner: Address, 
   assetId: Bytes<32>, 
-  proofHash: Bytes<32>
+  proofHash: Bytes<32>,
+  currentTime: Uint<64>
 ): [Bool, Uint<64>] {
   // Ensure the owner map exists
   if (!ownershipProofs.has(owner)) {
@@ -101,9 +102,7 @@ export circuit checkVerification(
   // Check if the verification exists and matches the proof hash
   if (proof.verified && proof.proofHash == proofHash) {
     let expiryTimestamp = proof.timestamp + VERIFICATION_VALIDITY_PERIOD;
-    // Note: Time comparison would need current time passed as parameter
-    // For now, assume verification is valid (would need circuit parameter)
-    
+    let stillValid = currentTime <= expiryTimestamp;
     return [stillValid, expiryTimestamp];
   }
   

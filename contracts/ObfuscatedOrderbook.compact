@@ -10,7 +10,7 @@
 pragma language_version 0.15;
 
 import CompactStandardLibrary;
-import "./AssetVerification.compact";
+import { checkVerification } from "./AssetVerification.compact";
 
 // Order types
 enum OrderType { Buy, Sell }
@@ -63,11 +63,8 @@ export circuit placeOrder(
   
   // For sell orders, verify ownership
   if (orderType == OrderType.Sell) {
-    // Import the AssetVerification contract to call its functions
-    import { checkVerification } from "./AssetVerification.compact";
-    
     // Check if verification is valid
-    let result = checkVerification(caller, assetId, verificationId);
+    let result = checkVerification(caller, assetId, verificationId, currentTime);
     assert(result[0], "Asset ownership verification failed or expired");
   }
   
