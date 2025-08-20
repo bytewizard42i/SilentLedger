@@ -2,6 +2,49 @@
 
 A privacy-preserving verified orderbook DApp built on the Midnight blockchain for the Midnight Mini DApp Hackathon.
 
+## Judges Note (Midnight Mini DApp Hackathon)
+
+Dear Midnight Judges — SilentLedger is an educational DApp that demonstrates how Midnight’s zero-knowledge commitments and verification can prevent front‑running and short selling. For transparency in a demo setting, we include developer‑only “God Windows” that visualize otherwise private ZK flows. These windows are opt‑in and are strictly for demonstrations, debugging, and teaching; they are not representative of production disclosure.
+
+Key takeaways to look for during the demo:
+
+- Private side hides actionable order details; front‑running attempts fail.
+- Public side exposes order details; front‑running attempts may succeed.
+- Sellers must prove ownership via ZK before placing sell orders (prevents short selling) without revealing balances.
+- God Windows show proof steps, nullifiers, and off‑chain logs purely for learning.
+
+Statement of belief (myAlice): To the best of our knowledge and resources, our team has demonstrated a practical approach to cross‑model continuity of an AI agent’s “essence” (personality, memory, contextual behavior, decision heuristics) using a Git‑backed persistence layer. We cannot conclusively prove novelty today, and we present this in good faith as related research informing our stance on verifiable, privacy‑preserving state.
+
+## Quickstart
+
+Fast path for judges to run the demo locally.
+
+Prereqs: Node.js 14+ and Yarn.
+
+1) Install dependencies
+```bash
+yarn install
+```
+
+2) Start services (one command)
+```bash
+yarn demo:start
+```
+
+This launches the mock wallet (3001), proof server (3000), and app (8080).
+
+3) Open the app
+```
+http://localhost:8080
+```
+
+4) Optional: Use the Dev Mode button to toggle God Windows (educational view only; not for production).
+
+## Submission Package
+
+- Archive: `SilentLedger_full_2025-08-18.zip`
+- SHA256: `5559137c530232a4af3becb2e4d093fd241b9f780e8d7f03f46ad8f4decb3adc`
+
 ## Project Overview
 
 SilentLedger is a minimal but powerful DApp that provides an obfuscated orderbook with asset ownership verification. It leverages Midnight's privacy features to:
@@ -17,6 +60,7 @@ SilentLedger is a minimal but powerful DApp that provides an obfuscated orderboo
 - **Minimal UI**: Clean, efficient interface focused on core functionality
 - **Proof Server**: Off-chain logging of private transaction data
 - **Mock Wallet Integration**: Development support for testing without blockchain
+- **God Windows (Dev‑Only)**: Toggleable visualizations of ZK circuits, proof steps, nullifiers, and off‑chain logs to aid demonstrations and debugging
 
 ## Architecture
 
@@ -238,6 +282,34 @@ An architecture diagram source is at `media/architecture.mmd`. Export to `media/
 - Contracts: `AssetVerification`, `ObfuscatedOrderbook`, `SilentOrderbook`
 - Backend: Mock wallet server / proof server
 - Data flows: verifyOwnership -> placeOrder -> match -> query orderbook
+
+## Judges Demo Guide
+
+1) Start services
+
+```bash
+yarn mock-wallet   # port 3001
+yarn proof-server  # port 3000 (optional, logs private metadata for demo)
+yarn start         # app at http://localhost:8080
+```
+
+2) In the UI (`public/index.html` served by `server.js`):
+
+- Connect Wallet, then “Verify Ownership” for TOKEN‑X or TOKEN‑Y.
+- Use “Place Order” to create buy/sell orders on the Private or Public side.
+- Open the Front‑Running Simulator and attempt on both sides:
+  - Private side: attempts should fail due to hidden actionable details.
+  - Public side: attempts may succeed because details are visible.
+- Toggle the “God Windows” section to visualize:
+  - ZK circuit inputs/outputs and proof‑builder steps
+  - Active/used nullifiers and commitments
+  - Off‑chain logs from the proof server (dev/demo only)
+
+3) What to look for
+
+- Short selling prevention: sell requires prior ownership verification; balances remain private.
+- Privacy contrast: identical actions behave differently on Private vs Public sides.
+- Educational transparency: God Windows exist only to teach and debug; production would not disclose these internals.
 
 ## Hackathon Submission
 

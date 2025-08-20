@@ -8,7 +8,8 @@
     "dev": "nodemon server.js",
     "proof-server": "node src/api/proof-server.js",
     "mock-wallet": "node src/api/mock-wallet-server.js",
-    "build": "echo \"No build step configured\" && exit 0"
+    "build": "echo \"No build step configured\" && exit 0",
+    "demo:start": "sh -c 'node src/api/mock-wallet-server.js & node src/api/proof-server.js & node server.js'"
   },
   "repository": {
     "type": "git",
