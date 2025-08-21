@@ -434,11 +434,11 @@ header, .dashboard, .panel {
 
 /* Input window container for command entry */
 .input-window {
-    padding: 10px;
+    padding: 0px 0px 5px 0px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 5px;
 }
 
 /* Label styling within input windows */
@@ -462,7 +462,7 @@ header, .dashboard, .panel {
     background-color: #0A0C23;
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: #fff;
-    padding: 5px 10px;
+    padding: 10px 10px;
     font-family: monospace;
     font-size: 14px;
     border-radius: 3px 0 0 3px;
@@ -713,7 +713,7 @@ input[type="range"]::-webkit-slider-thumb {
     background-color: rgba(255, 255, 255, 0.1); /* Slight white transparency for contrast */
     color: #ffffff;
     padding: 5px;
-    height: 170px; /* Fixed height to show exactly 10 lines with font-size 12px and line-height 1.2 */
+    height: 200px; /* Fixed height to show exactly 10 lines with font-size 12px and line-height 1.2 */
     overflow-y: auto;
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 5px;
