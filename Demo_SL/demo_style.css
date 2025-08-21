@@ -713,7 +713,7 @@ input[type="range"]::-webkit-slider-thumb {
     background-color: rgba(255, 255, 255, 0.1); /* Slight white transparency for contrast */
     color: #ffffff;
     padding: 5px;
-    height: 170px; /* Fixed height to show exactly 10 lines with font-size 12px and line-height 1.2 */
+    height: 155px; /* Fixed height to show exactly 9 lines with font-size 12px and line-height 1.2 */
     overflow-y: auto;
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 5px;
