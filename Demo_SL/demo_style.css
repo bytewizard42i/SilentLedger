@@ -79,7 +79,7 @@ body {
                       radial-gradient(1px 1px at 165px 125px, #ddd, rgba(0,0,0,0));
     background-repeat: repeat;
     background-size: 250px 250px;
-    animation: twinkle1 4s ease-in-out infinite alternate;
+    animation: twinkle1 8s ease-in-out infinite alternate;
 }
 
 .twinkling-stars::after {
@@ -97,18 +97,25 @@ body {
                       radial-gradient(1px 1px at 155px 115px, #ddd, rgba(0,0,0,0));
     background-repeat: repeat;
     background-size: 300px 300px;
-    animation: twinkle2 6s ease-in-out infinite alternate;
+    animation: twinkle2 12s ease-in-out infinite alternate;
 }
 
 /* Keyframe animation for star twinkling effect */
-@keyframes twinkle {
-    0% { opacity: 0.3; }
-    100% { opacity: 0.7; }
+@keyframes twinkle1 {
+    0% { opacity: 0.1; }
+    25% { opacity: 0.8; }
+    50% { opacity: 0.3; }
+    75% { opacity: 0.9; }
+    100% { opacity: 0.2; }
 }
 
 @keyframes twinkle2 {
     0% { opacity: 0.2; }
-    100% { opacity: 0.6; }
+    20% { opacity: 0.1; }
+    40% { opacity: 0.7; }
+    60% { opacity: 0.3; }
+    80% { opacity: 0.9; }
+    100% { opacity: 0.4; }
 }
 
 /* Container for moving comet animations across the screen */
@@ -638,9 +645,9 @@ input[type="range"]::-webkit-slider-thumb {
     font-weight: bold;
 }
 
-/* Private Orderbook - Teal */
+/* Private Orderbook - Remove background color */
 #private-orderbook {
-    background-color: rgba(0, 128, 128, 0.3);
+    background-color: transparent;
     color: #ffffff;
     padding: 10px;
     height: 300px;
@@ -650,9 +657,9 @@ input[type="range"]::-webkit-slider-thumb {
     margin-bottom: 10px;
 }
 
-/* Public Orderbook - Orange */
+/* Public Orderbook - Remove background color */
 #public-orderbook {
-    background-color: rgba(255, 165, 0, 0.3);
+    background-color: transparent;
     color: #ffffff;
     padding: 10px;
     height: 300px;
@@ -710,7 +717,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 /* Data window container for 10-line displays under each orderbook */
 .data-window {
-    background-color: rgba(255, 255, 255, 0.1); /* Slight white transparency for contrast */
+    background-color: rgba(255, 255, 255, 0.05); /* Base transparent background */
     color: #ffffff;
     padding: 5px;
     height: 155px; /* Fixed height to show exactly 9 lines with font-size 12px and line-height 1.2 */
@@ -727,6 +734,40 @@ input[type="range"]::-webkit-slider-thumb {
     margin: 0;
     white-space: pre-wrap;
     font-family: monospace;
+}
+
+/* Specific colors for each data window - transparent but visible */
+#private-orderbook-data {
+    background-color: rgba(0, 255, 255, 0.15); /* Aqua */
+}
+
+#public-orderbook-data {
+    background-color: rgba(255, 255, 0, 0.15); /* Yellow */
+}
+
+#private-output-data {
+    background-color: rgba(255, 165, 0, 0.15); /* Orange */
+}
+
+#public-output-data {
+    background-color: rgba(128, 0, 128, 0.15); /* Purple */
+}
+
+#private-god-data-window {
+    background-color: rgba(255, 192, 203, 0.15); /* Pink */
+}
+
+#public-god-data-window {
+    background-color: rgba(139, 69, 19, 0.15); /* Brown */
+}
+
+/* Add padding above output titles */
+.individual-orderbook-panel h3 {
+    margin-top: 20px;
+    margin-bottom: 10px;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
 }
 
 /* ========================================
