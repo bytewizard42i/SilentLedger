@@ -1,4 +1,10 @@
-/* SilentLedger Demo Styles */
+/* ========================================
+   SILENTLEDGER DEMO STYLES
+   ========================================
+   GLOBAL STYLES AND RESETS
+   ========================================
+   Base styling, font imports, and global resets
+   ======================================== */
 
 /* Reset and Global Styles */
 * {
@@ -17,6 +23,14 @@ body {
     position: relative;
 }
 
+/* ========================================
+   ANIMATED STARRY BACKGROUND
+   ========================================
+   Creates twinkling stars and moving comets animation
+   for the demo background
+   ======================================== */
+
+/* Main container for the animated starry background */
 .animated-stars-background {
     position: fixed;
     top: 0;
@@ -28,6 +42,7 @@ body {
     overflow: hidden;
 }
 
+/* Individual twinkling stars with random positioning and animation */
 .twinkling-stars {
     position: absolute;
     top: 0;
@@ -85,7 +100,8 @@ body {
     animation: twinkle2 6s ease-in-out infinite alternate;
 }
 
-@keyframes twinkle1 {
+/* Keyframe animation for star twinkling effect */
+@keyframes twinkle {
     0% { opacity: 0.3; }
     100% { opacity: 0.7; }
 }
@@ -95,6 +111,7 @@ body {
     100% { opacity: 0.6; }
 }
 
+/* Container for moving comet animations across the screen */
 .moving-comets-container {
     position: absolute;
     top: 0;
@@ -115,49 +132,68 @@ body {
     box-shadow: 0 0 5px 2px rgba(255, 255, 255, 0.5);
 }
 
+/* First comet animation - top trajectory */
 .moving-comets-container::before {
     top: 10%;
     left: -5%;
     animation: comet 15s linear infinite;
 }
 
+/* Second comet animation - lower trajectory with delay */
 .moving-comets-container::after {
     top: 60%;
     left: -5%;
     animation: comet 25s linear infinite 5s;
 }
 
+/* Keyframe animation for comet movement across screen */
 @keyframes comet {
     0% { transform: translateX(0) translateY(0); opacity: 1; }
     100% { transform: translateX(150vw) translateY(40vh); opacity: 0; }
 }
 
+/* ========================================
+   LAYOUT Z-INDEX MANAGEMENT
+   ========================================
+   Ensures proper layering above background
+   ======================================== */
+
+/* Main layout elements positioned above animated background */
 header, .dashboard, .panel {
     position: relative;
     z-index: 1;
 }
 
-/* Header Styles */
+/* ========================================
+   MAIN PAGE HEADER
+   ========================================
+   Top navigation bar with logo and wallet status
+   ======================================== */
+
+/* Main header container with gradient background */
 .main-page-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 20px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    margin-bottom: 20px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 10px;
 }
 
+/* SilentLedger logo styling */
 .silentledger-logo {
     font-size: 1.8rem;
     font-weight: 700;
     color: #3a86ff;
 }
 
+/* Main navigation container */
 .main-navigation {
     display: flex;
     gap: 30px;
 }
 
+/* Individual navigation links styling */
 .navigation-link {
     color: #a0a0a0;
     text-decoration: none;
@@ -170,6 +206,7 @@ header, .dashboard, .panel {
     color: #ffffff;
 }
 
+/* Wallet connection status indicator */
 .wallet-connection-status {
     display: flex;
     align-items: center;
@@ -184,7 +221,13 @@ header, .dashboard, .panel {
     color: #ff4d6a;
 }
 
-/* Dashboard Layout */
+/* ========================================
+   MAIN DASHBOARD CONTAINER
+   ========================================
+   Primary layout container for all demo content
+   ======================================== */
+
+/* Main dashboard layout container */
 .main-dashboard-container {
     display: flex;
     flex-direction: column;
@@ -192,6 +235,7 @@ header, .dashboard, .panel {
     min-height: calc(100vh - 120px);
 }
 
+/* Combined header for demo controls and orderbook titles */
 .demo-controls-combined-header {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     padding-bottom: 10px;
@@ -202,6 +246,7 @@ header, .dashboard, .panel {
     gap: 15px;
 }
 
+/* Centered title styling for orderbook sections */
 .orderbook-centered-title {
     font-size: 1.1rem;
     font-weight: 600;
@@ -210,10 +255,12 @@ header, .dashboard, .panel {
     text-align: center;
 }
 
+/* Larger title variant for emphasis */
 .orderbook-larger-title {
     font-size: 1.3rem;
 }
 
+/* Label styling for demo control sections */
 .demo-controls-section-label {
     font-size: 1rem;
     font-weight: 600;
@@ -247,8 +294,8 @@ header, .dashboard, .panel {
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 2px 4px rgba(58, 134, 255, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.2);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 6px rgba(58, 134, 255, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .demo-controls-combined-header .demo-reset-button:hover {
@@ -257,6 +304,13 @@ header, .dashboard, .panel {
     transform: translateY(-1px);
 }
 
+/* ========================================
+   GOD VIEW SIDEBAR SECTION
+   ========================================
+   Right sidebar containing God View panels
+   ======================================== */
+
+/* God View sidebar container */
 .god-view-sidebar-section {
     width: 100%;
     max-width: 400px;
@@ -269,6 +323,13 @@ header, .dashboard, .panel {
     margin-bottom: 15px;
 }
 
+/* ========================================
+   MAIN ORDERBOOK LAYOUT
+   ========================================
+   Container for orderbook panels and controls
+   ======================================== */
+
+/* Main wrapper for orderbook container */
 .main-orderbook-container-wrapper {
     display: flex;
     flex-direction: row;
@@ -276,6 +337,7 @@ header, .dashboard, .panel {
     width: 100%;
 }
 
+/* Main panel containing demo controls and orderbook sections */
 .demo-controls-and-orderbook-panel {
     flex: 2;
     background-color: rgba(255, 255, 255, 0.05);
@@ -286,13 +348,16 @@ header, .dashboard, .panel {
     flex-direction: column;
 }
 
+/* Container that splits Private and Public orderbook panels side by side */
 .private-public-orderbook-split {
     display: flex;
     flex-direction: row;
     gap: 20px;
-    margin-top: 20px;
+    margin-top: 10px;
+    margin-bottom: 30px;
 }
 
+/* Individual orderbook panel styling (Private or Public) */
 .individual-orderbook-panel {
     flex: 1;
     display: flex;
@@ -305,18 +370,21 @@ header, .dashboard, .panel {
     overflow: hidden;
 }
 
+/* Header styling for individual orderbook panels */
 .orderbook-individual-panel-header {
     margin-bottom: 10px;
     padding-bottom: 10px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Main God View panel container */
 .god-view-main-panel {
     flex: 1;
     background-color: rgba(58, 134, 255, 0.1);
     border: 1px solid rgba(58, 134, 255, 0.2);
 }
 
+/* Main content area within dashboard layout */
 .dashboard-main-content-area {
     flex: 1;
     display: flex;
@@ -324,6 +392,7 @@ header, .dashboard, .panel {
     gap: 25px;
 }
 
+/* Container for God View sub-windows (Private and Public) */
 .god-view-sub-windows-container {
     display: flex;
     flex-direction: column;
@@ -331,6 +400,7 @@ header, .dashboard, .panel {
     height: calc(100% - 60px);
 }
 
+/* Individual sub-window within God View (Private or Public God View) */
 .god-view-individual-sub-window {
     flex: 1;
     display: flex;
@@ -341,6 +411,7 @@ header, .dashboard, .panel {
     padding: 10px;
 }
 
+/* Title styling for God View sub-windows */
 .god-view-individual-sub-window h3 {
     color: #fff;
     font-size: 0.9rem;
@@ -348,12 +419,20 @@ header, .dashboard, .panel {
     text-align: center;
 }
 
+/* Orderbook container within God View sub-windows */
 .god-view-individual-sub-window .orderbook-container {
     flex: 1;
     overflow-y: auto;
     padding: 5px;
 }
 
+/* ========================================
+   INPUT AND COMMAND CONTROLS
+   ========================================
+   Styling for input fields and command controls
+   ======================================== */
+
+/* Input window container for command entry */
 .input-window {
     padding: 10px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -362,12 +441,14 @@ header, .dashboard, .panel {
     gap: 10px;
 }
 
+/* Label styling within input windows */
 .input-window label {
     color: #fff;
     font-size: 0.9rem;
     font-weight: 500;
 }
 
+/* Command input area with dropdown functionality */
 .command-area {
     position: relative;
     display: flex;
@@ -375,6 +456,7 @@ header, .dashboard, .panel {
     width: 100%;
 }
 
+/* Text input field for commands */
 .command-area input {
     flex-grow: 1;
     background-color: #0A0C23;
@@ -386,6 +468,7 @@ header, .dashboard, .panel {
     border-radius: 3px 0 0 3px;
 }
 
+/* Dropdown button for command selection */
 .dropdown-btn {
     background-color: #0A0C23;
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -396,6 +479,7 @@ header, .dashboard, .panel {
     height: 30px;
 }
 
+/* Dropdown menu content container */
 .dropdown-content {
     display: none;
     position: absolute;
@@ -408,6 +492,7 @@ header, .dashboard, .panel {
     right: 0;
 }
 
+/* Individual dropdown menu items */
 .dropdown-content a {
     color: white;
     padding: 12px 16px;
@@ -623,6 +708,7 @@ input[type="range"]::-webkit-slider-thumb {
     border-radius: 10px;
 }
 
+/* Data window container for 10-line displays under each orderbook */
 .data-window {
     background-color: rgba(255, 255, 255, 0.1); /* Slight white transparency for contrast */
     color: #ffffff;
@@ -636,15 +722,22 @@ input[type="range"]::-webkit-slider-thumb {
     line-height: 1.2; /* Adjusted for better readability */
 }
 
+/* Preformatted text styling within data windows */
 .data-window pre {
     margin: 0;
     white-space: pre-wrap;
     font-family: monospace;
 }
 
-/* Responsive */
+/* ========================================
+   RESPONSIVE DESIGN
+   ========================================
+   Media queries for mobile and tablet layouts
+   ======================================== */
+
+/* Tablet and smaller desktop layouts */
 @media (max-width: 1200px) {
-    .orderbook-container-wrapper {
+    .main-orderbook-container-wrapper {
         flex-direction: column;
     }
     .dashboard {

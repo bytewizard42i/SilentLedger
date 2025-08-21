@@ -8,36 +8,36 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="stars-background">
-        <div class="stars"></div>
-        <div class="comets"></div>
+    <div class="animated-stars-background">
+        <div class="twinkling-stars"></div>
+        <div class="moving-comets-container"></div>
     </div>
     <div id="app">
-        <header class="header">
-            <div class="logo">SilentLedger</div>
-            <nav class="nav">
-                <a href="#" class="nav-link active">Demo</a>
-                <a href="#" class="nav-link">Features</a>
-                <a href="#" class="nav-link">About</a>
+        <header class="main-page-header">
+            <div class="silentledger-logo">SilentLedger</div>
+            <nav class="main-navigation">
+                <a href="#" class="navigation-link active">Demo</a>
+                <a href="#" class="navigation-link">Features</a>
+                <a href="#" class="navigation-link">About</a>
             </nav>
-            <div class="wallet-status disconnected" id="wallet-status">
+            <div class="wallet-connection-status disconnected" id="wallet-status">
                 <span>Disconnected</span>
             </div>
         </header>
-        <div class="dashboard">
-            <div class="orderbook-container-wrapper">
-                <div class="combined-orderbook-panel">
-                    <div class="panel-header combined-header">
-                        <h3 class="demo-controls-label">Demo Controls</h3>
-                        <div class="control-group mode-group">
+        <div class="main-dashboard-container">
+            <div class="main-orderbook-container-wrapper">
+                <div class="demo-controls-and-orderbook-panel">
+                    <div class="panel-header demo-controls-combined-header">
+                        <h3 class="demo-controls-section-label">Demo Controls</h3>
+                        <div class="control-group mode-selection-group">
                             <label for="mode-select">Mode:</label>
                             <select id="mode-select" onchange="changeMode(this.value)">
                                 <option value="demo">Demo</option>
                                 <option value="coming-soon" disabled>Coming Soon</option>
                             </select>
                         </div>
-                        <div class="control-group reset-group">
-                            <button class="reset-btn" onclick="resetDemo()">Reset</button>
+                        <div class="control-group reset-button-group">
+                            <button class="demo-reset-button" onclick="resetDemo()">Reset</button>
                         </div>
                         <div class="scroll-controls">
                             <button class="control-btn" onclick="startScroll('combined')">Start</button>
@@ -62,10 +62,10 @@
                             </div>
                         </div>
                     </div>
-                    <div class="orderbook-split">
-                        <div class="panel orderbook-panel" id="private-orderbook">
-                            <div class="panel-header individual-header">
-                                <h2 class="centered-title"><span class="private-word">Private</span> Orderbook</h2>
+                    <div class="private-public-orderbook-split">
+                        <div class="panel individual-orderbook-panel" id="private-orderbook">
+                            <div class="panel-header orderbook-individual-panel-header">
+                                <h2 class="orderbook-centered-title"><span class="private-word">Private</span> Orderbook</h2>
                             </div>
                             <div class="orderbook-container" id="private-data"></div>
                             <div id="private-orderbook-data" class="data-window">
@@ -94,9 +94,9 @@ Line 9
 Line 10</pre>
                             </div>
                         </div>
-                        <div class="panel orderbook-panel" id="public-orderbook">
-                            <div class="panel-header individual-header">
-                                <h2 class="centered-title"><span class="public-word">Public</span> Orderbook</h2>
+                        <div class="panel individual-orderbook-panel" id="public-orderbook">
+                            <div class="panel-header orderbook-individual-panel-header">
+                                <h2 class="orderbook-centered-title"><span class="public-word">Public</span> Orderbook</h2>
                             </div>
                             <div class="orderbook-container" id="public-data"></div>
                             <div id="public-orderbook-data" class="data-window">
@@ -127,12 +127,12 @@ Line 10</pre>
                         </div>
                     </div>
                 </div>
-                <div class="panel god-panel" id="god-view">
+                <div class="panel god-view-main-panel" id="god-view">
                     <div class="panel-header">
-                        <h2 class="centered-title">God View (All Data)</h2>
+                        <h2 class="orderbook-centered-title">God View (All Data)</h2>
                     </div>
-                    <div class="god-sub-windows">
-                        <div class="sub-window">
+                    <div class="god-view-sub-windows-container">
+                        <div class="god-view-individual-sub-window">
                             <h3><span class="private-word">Private</span> God View</h3>
                             <div class="orderbook-container" id="private-god-data"></div>
                             <div id="private-god-data-window" class="data-window">
@@ -148,7 +148,7 @@ Line 9
 Line 10</pre>
                             </div>
                         </div>
-                        <div class="sub-window">
+                        <div class="god-view-individual-sub-window">
                             <h3><span class="public-word">Public</span> God View</h3>
                             <div class="orderbook-container" id="public-god-data"></div>
                             <div id="public-god-data-window" class="data-window">
