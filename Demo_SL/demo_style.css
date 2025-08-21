@@ -553,9 +553,9 @@ input[type="range"]::-webkit-slider-thumb {
     font-weight: bold;
 }
 
-/* Private Orderbook - Remove background color */
+/* Private Orderbook - Teal */
 #private-orderbook {
-    background-color: transparent;
+    background-color: rgba(0, 128, 128, 0.3);
     color: #ffffff;
     padding: 10px;
     height: 300px;
@@ -565,9 +565,9 @@ input[type="range"]::-webkit-slider-thumb {
     margin-bottom: 10px;
 }
 
-/* Public Orderbook - Remove background color */
+/* Public Orderbook - Orange */
 #public-orderbook {
-    background-color: transparent;
+    background-color: rgba(255, 165, 0, 0.3);
     color: #ffffff;
     padding: 10px;
     height: 300px;
