@@ -133,13 +133,13 @@ function initDemo() {
 // Render the current slide
 function renderSlide() {
     if (!currentCommand || currentCommand === "") {
-        // Show default empty state or a welcome message
-        document.getElementById("private-orderbook").innerHTML = "Private Orderbook: Select a command to begin.";
-        document.getElementById("public-orderbook").innerHTML = "Public Orderbook: Select a command to begin.";
-        document.getElementById("private-output").innerHTML = "Private Output: Select a command to begin.";
-        document.getElementById("public-output").innerHTML = "Public Output: Select a command to begin.";
-        document.getElementById("private-god").innerHTML = "Private God View: Select a command to begin.";
-        document.getElementById("public-god").innerHTML = "Public God View: Select a command to begin.";
+        // Show default landing screen with original line numbers
+        document.getElementById("private-orderbook-data").innerHTML = "<pre>top-left\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10</pre>";
+        document.getElementById("public-orderbook-data").innerHTML = "<pre>top-right\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10</pre>";
+        document.getElementById("private-output-data").innerHTML = "<pre>bottom-left\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10</pre>";
+        document.getElementById("public-output-data").innerHTML = "<pre>bottom-right\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10</pre>";
+        document.getElementById("private-god-data-window").innerHTML = "<pre>top\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10</pre>";
+        document.getElementById("public-god-data-window").innerHTML = "<pre>bottom\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10</pre>";
         return;
     }
     
