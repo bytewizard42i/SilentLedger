@@ -736,6 +736,12 @@ input[type="range"]::-webkit-slider-thumb {
     font-family: monospace;
 }
 
+/* Increase height for main Orderbook data windows (+~4 lines) */
+#private-orderbook-data,
+#public-orderbook-data {
+    height: 213px; /* 155px base + ~58px (4 lines at 14.4px each) */
+}
+
 /* Specific colors for each data window - transparent but visible */
 #private-orderbook-data {
     background-color: rgba(0, 255, 255, 0.15); /* Aqua */

@@ -40,13 +40,13 @@
                             <button class="demo-reset-button" onclick="resetDemo()">Reset</button>
                         </div>
                         <div class="scroll-controls">
-                            <button class="control-btn" onclick="startScroll('combined')">Start</button>
+                            <button class="control-btn" onclick="startScroll()">Start</button>
                             <button class="control-btn" onclick="nextSlide()">Next</button>
-                            <button class="control-btn" onclick="autoScroll('combined')">Auto</button>
-                            <button class="control-btn" onclick="stopScroll('combined')">Stop</button>
+                            <button class="control-btn" id="auto-btn" onclick="autoScroll()">Auto</button>
+                            <button class="control-btn" onclick="stopScroll()">Stop</button>
                             <div class="controls">
                                 <span class="label">Slide Speed:</span>
-                                <input type="range" id="combined-speed" min="1" max="10" value="5" onchange="updateSpeed('combined', this.value)">
+                                <input type="range" id="speed-slider" min="300" max="3000" value="1000" onchange="updateSpeed()">
                             </div>
                         </div>
                     </div>
@@ -59,9 +59,9 @@
                                 <!-- Add new drop down commands here for enter order-->
 
 
-                                <a href="#" onclick="selectCommand('Introduction to Orderbooks')">Introduction to Orderbooks</a>
+                                <a href="#" onclick="selectCommand('Demo #1 buy token X with token Y')">Demo-1: Buy token X with token Y</a>
                                 
-                                <a href="#" onclick="selectCommand('Show Transaction Details')">Show Transaction Details</a>
+                                <a href="#" onclick="selectCommand('Demo-2: Sell token X for token Y')">Demo-2: Sell token X for token Y</a>
                                 
                                 <a href="#" onclick="selectCommand('Analyze Market Trends')">Analyze Market Trends</a>
                             </div>

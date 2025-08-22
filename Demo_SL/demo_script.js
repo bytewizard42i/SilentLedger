@@ -153,12 +153,12 @@ function renderSlide() {
     const slide = commandData.sequence[currentSlideIndex];
     
     // Update all windows with the current slide's content
-    document.getElementById("private-orderbook").innerHTML = slide.privateOrderbook;
-    document.getElementById("public-orderbook").innerHTML = slide.publicOrderbook;
-    document.getElementById("private-output").innerHTML = slide.privateOutput;
-    document.getElementById("public-output").innerHTML = slide.publicOutput;
-    document.getElementById("private-god").innerHTML = slide.privateGod;
-    document.getElementById("public-god").innerHTML = slide.publicGod;
+    document.getElementById("private-orderbook-data").innerHTML = `<pre>${slide.privateOrderbook}</pre>`;
+    document.getElementById("public-orderbook-data").innerHTML = `<pre>${slide.publicOrderbook}</pre>`;
+    document.getElementById("private-output-data").innerHTML = `<pre>${slide.privateOutput}</pre>`;
+    document.getElementById("public-output-data").innerHTML = `<pre>${slide.publicOutput}</pre>`;
+    document.getElementById("private-god-data-window").innerHTML = `<pre>${slide.privateGod}</pre>`;
+    document.getElementById("public-god-data-window").innerHTML = `<pre>${slide.publicGod}</pre>`;
 }
 
 // Move to the next slide
