@@ -76,7 +76,7 @@ The project consists of three main components:
 
 ## Compatibility
 
-This repository is updated for Midnight Compact language version 0.15.
+This repository was originally written for Midnight Compact language version 0.15 and is being updated for current versions.
 
 - Uses explicit `import CompactStandardLibrary;`
 - Replaces `Void` with `[]` (empty tuple) for functions with no return values
@@ -97,7 +97,7 @@ This repository is updated for Midnight Compact language version 0.15.
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/SilentLedger.git
+git clone https://github.com/bytewizard42i/SilentLedger.git
 
 # Install dependencies
 cd SilentLedger
@@ -124,7 +124,7 @@ yarn mock-wallet
 
 ### Developer Quick Start (Contracts)
 
-> Note: These Compact contracts target `pragma language_version 0.15` and are structured for integration. If you have the Compact toolchain:
+> Note: These Compact contracts were originally written for `pragma language_version 0.15` (migration to current language version planned) and are structured for integration. If you have the Compact toolchain:
 
 1. Build and check syntax for the contracts in `contracts/`:
    - `contracts/AssetVerification.compact`
