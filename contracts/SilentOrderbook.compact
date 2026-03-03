@@ -1,152 +1,208 @@
 /**
  * SilentOrderbook.compact
- * SilentLedger - Midnight Mini DApp Hackathon
- * 
- * A privacy-preserving orderbook implementation using Midnight's
- * native privacy features with ZK proofs for asset ownership verification
- * and obfuscated order commitments.
+ * SilentLedger - Privacy-Preserving Orderbook
+ *
+ * A privacy-preserving orderbook using obfuscated order commitments.
+ * Orders are identified by their commitment hash and stored in a flat Map
+ * (Compact does not support List or for-loops).
+ *
+ * Patterns: Based on official bboard (midnightntwrk/example-bboard)
+ * and KYCzAnchor (bytewizard42i/KYCz_us_app) reference contracts.
+ *
+ * Key design changes from original:
+ * - List<OrderCommit> replaced with Map<Bytes<32>, OrderCommit>
+ * - for-loop batch matching replaced with per-pair matchOrder circuit
+ * - ZKProof<OwnsAsset> custom type removed (not valid Compact)
+ * - Proper access control via ownPublicKey() for admin functions
+ *
+ * Compiler: compactc v0.29.0
  */
 
-pragma language_version 0.15;
+pragma language_version >= 0.16;
 
 import CompactStandardLibrary;
 
-// Enums for DEX and order status
-enum DEXState { Active, Paused }
-enum OrderStatus { Open, Matched, Cancelled, Modified }
+// ============================================================================
+// DATA STRUCTURES
+// ============================================================================
 
-// Struct for order commitment (obfuscated)
+export enum DexState { Active, Paused }
+export enum OrderStatus { Open, Matched, Cancelled }
+
 struct OrderCommit {
-  commitment: Bytes<32>;
-  timestamp: Uint<64>;
-  status: OrderStatus;
+  commitment: Bytes<32>;   // Obfuscated order content hash
+  ownerHash: Bytes<32>;    // Hash of the order owner (privacy-preserving)
+  timestamp: Uint<64>;     // When the order was placed
+  status: OrderStatus;     // Current order status
 }
 
-// Ledger state
-ledger dexState: DEXState;
-ledger lastBatchRoot: Bytes<32>;
-ledger orderQueue: List<OrderCommit>;
-
-// Witness: private user order data
-struct OrderData {
+// Input struct for computing order commitments from private data
+struct OrderCommitInput {
   amount: Uint<64>;
   assetId: Bytes<32>;
-  direction: Bool; // true = sell, false = buy
+  isSell: Boolean;         // true = sell, false = buy
   nonce: Bytes<32>;
-  assetProof: ZKProof<OwnsAsset>;
 }
 
-// Witness function to retrieve private order data
-witness orderData(): OrderData;
+// ============================================================================
+// LEDGER STATE
+// ============================================================================
 
-// ZK proof type for asset ownership
-type OwnsAsset;
+export ledger dexState: DexState;
+export ledger lastBatchRoot: Bytes<32>;
+export ledger totalOrders: Counter;
 
-/**
- * Circuit to add an order (obfuscated)
- * Uses a commitment to hide order details while still enabling matching
- */
-export circuit addOrder(commitment: Bytes<32>, timestamp: Uint<64>): [] {
-  assert(dexState == DEXState.Active, "DEX is paused");
-  let newOrder: OrderCommit = { 
-    commitment, 
-    timestamp, 
-    status: OrderStatus.Open 
-  };
-  orderQueue.append(newOrder);
+// Orders keyed by their commitment hash
+ledger orders: Map<Bytes<32>, OrderCommit>;
+
+// Admin key for pause/unpause (set at deploy time)
+sealed ledger adminKey: ZswapCoinPublicKey;
+
+// ============================================================================
+// WITNESSES
+// ============================================================================
+
+// Private order data stays with the prover — never revealed on-chain
+witness localOrderData(): OrderCommitInput;
+
+// ============================================================================
+// CONSTRUCTOR
+// ============================================================================
+
+constructor() {
+  dexState = DexState.Active;
+  lastBatchRoot = pad(32, "");
+  adminKey = ownPublicKey();
 }
 
-/**
- * Circuit to cancel an order
- * Requires proving ownership of the order via witness data
- */
-export circuit cancelOrder(orderIndex: Uint<64>): [] {
-  assert(dexState == DEXState.Active, "DEX is paused");
-  assert(orderIndex < orderQueue.length(), "Invalid order index");
-  
-  // Get the order from the queue
-  let order = orderQueue.get(orderIndex);
-  
-  // Verify ownership of the order using the witness
-  let data = orderData();
-  let computedCommitment = hash([
-    data.amount, 
-    data.assetId, 
-    data.direction, 
-    data.nonce
-  ]);
-  
-  // Check that the witness data matches the committed order
-  assert(computedCommitment == order.commitment, "Not the order owner");
-  
-  // Update the order status
-  order.status = OrderStatus.Cancelled;
-  orderQueue.set(orderIndex, order);
-}
+// ============================================================================
+// HELPER CIRCUITS
+// ============================================================================
 
 /**
- * Circuit for matching orders in a batch
- * In a real implementation, this would be performed by validators
- * after verifying all matches are valid and fair
+ * Compute the commitment hash for an order from its private data.
+ * The commitment hides the order details while enabling later verification.
  */
-export circuit matchOrders(
-  orderIndices: List<Uint<64>>,
-  matchAmounts: List<Uint<64>>,
-  newRoot: Bytes<32>
+circuit computeCommitment(data: OrderCommitInput): Bytes<32> {
+  return persistentHash<OrderCommitInput>(data);
+}
+
+// ============================================================================
+// CIRCUITS
+// ============================================================================
+
+/**
+ * Add an obfuscated order to the orderbook.
+ * The commitment hides order details; the ownerHash identifies the owner
+ * without revealing their identity.
+ *
+ * @param commitment - Hash of order data (computed off-chain by prover)
+ * @param ownerHash - Hash of order owner identity
+ * @param timestamp - Current timestamp
+ */
+export circuit addOrder(
+  commitment: Bytes<32>,
+  ownerHash: Bytes<32>,
+  timestamp: Uint<64>
 ): [] {
-  assert(dexState == DEXState.Active, "DEX is paused");
-  assert(orderIndices.length() > 0, "Empty order list");
-  assert(orderIndices.length() == matchAmounts.length(), "Mismatched arrays");
-  
-  // Update orders with matched amounts
-  // In a real implementation, this would include complex logic to verify
-  // that the matches are valid and fair
-  
-  // For demonstration purposes, we just update the order status
-  for (let i = 0; i < orderIndices.length(); i++) {
-    let idx = orderIndices.get(i);
-    assert(idx < orderQueue.length(), "Invalid order index");
-    
-    let order = orderQueue.get(idx);
-    order.status = OrderStatus.Matched;
-    orderQueue.set(idx, order);
-  }
-  
-  // Update the batch root
-  lastBatchRoot = newRoot;
+  assert(dexState == DexState.Active, "DEX is paused");
+  assert(!orders.member(disclose(commitment)), "Order commitment already exists");
+
+  const newOrder = OrderCommit {
+    commitment: commitment,
+    ownerHash: ownerHash,
+    timestamp: timestamp,
+    status: OrderStatus.Open
+  };
+  orders.insert(disclose(commitment), disclose(newOrder));
+  totalOrders.increment(1);
 }
 
 /**
- * Admin circuit to pause/unpause the DEX
- * In a real implementation, this would have access control restrictions
+ * Cancel an order.
+ * The prover must supply their private order data via witness to prove
+ * they own the order (commitment verification pattern from bboard).
+ *
+ * @param commitment - The order commitment to cancel
  */
-export circuit setDexState(newState: DEXState): [] {
-  // In a real implementation, this would include access control
-  dexState = newState;
+export circuit cancelOrder(commitment: Bytes<32>): [] {
+  assert(dexState == DexState.Active, "DEX is paused");
+  assert(orders.member(disclose(commitment)), "Order not found");
+
+  const order = orders.lookup(disclose(commitment));
+  assert(order.status == OrderStatus.Open, "Order is not open");
+
+  // Verify ownership: prover supplies private order data via witness,
+  // we recompute the commitment and check it matches
+  const data = localOrderData();
+  const recomputed = computeCommitment(data);
+  assert(recomputed == order.commitment, "Not the order owner");
+
+  // Mark as cancelled
+  const cancelledOrder = OrderCommit {
+    commitment: order.commitment,
+    ownerHash: order.ownerHash,
+    timestamp: order.timestamp,
+    status: OrderStatus.Cancelled
+  };
+  orders.insert(disclose(commitment), disclose(cancelledOrder));
 }
 
 /**
- * Asset ownership verification circuit
- * Creates a zero-knowledge proof that the user owns at least the minimum amount
- * without revealing their actual balance
+ * Match a pair of orders.
+ * In a real implementation, a validator or matcher would call this after
+ * verifying that the match is valid and fair. Compact does not support
+ * for-loops, so batch matching is done per-pair.
+ *
+ * @param buyCommitment - Commitment of the buy order
+ * @param sellCommitment - Commitment of the sell order
+ * @param newBatchRoot - Updated batch Merkle root after this match
  */
-circuit verifyAssetOwnership(
-  assetId: Bytes<32>, 
-  minAmount: Uint<64>
-): ZKProof<OwnsAsset> {
-  // This would integrate with Midnight's asset registry
-  // to verify that the user owns at least minAmount of the asset
-  // without revealing the actual balance
-  
-  // The returned proof can then be used in order creation
-  // to prevent short selling
+export circuit matchOrder(
+  buyCommitment: Bytes<32>,
+  sellCommitment: Bytes<32>,
+  newBatchRoot: Bytes<32>
+): [] {
+  assert(dexState == DexState.Active, "DEX is paused");
+
+  // Validate both orders exist and are open
+  assert(orders.member(disclose(buyCommitment)), "Buy order not found");
+  assert(orders.member(disclose(sellCommitment)), "Sell order not found");
+
+  const buyOrder = orders.lookup(disclose(buyCommitment));
+  const sellOrder = orders.lookup(disclose(sellCommitment));
+
+  assert(buyOrder.status == OrderStatus.Open, "Buy order is not open");
+  assert(sellOrder.status == OrderStatus.Open, "Sell order is not open");
+
+  // Mark both as matched
+  const matchedBuy = OrderCommit {
+    commitment: buyOrder.commitment,
+    ownerHash: buyOrder.ownerHash,
+    timestamp: buyOrder.timestamp,
+    status: OrderStatus.Matched
+  };
+  const matchedSell = OrderCommit {
+    commitment: sellOrder.commitment,
+    ownerHash: sellOrder.ownerHash,
+    timestamp: sellOrder.timestamp,
+    status: OrderStatus.Matched
+  };
+
+  orders.insert(disclose(buyCommitment), disclose(matchedBuy));
+  orders.insert(disclose(sellCommitment), disclose(matchedSell));
+
+  // Update batch root
+  lastBatchRoot = disclose(newBatchRoot);
 }
 
 /**
- * Initialize the DEX
- * Sets the initial state and creates the first batch root
+ * Admin: pause or unpause the DEX.
+ * Only the deployer (admin) can toggle state.
+ *
+ * @param newState - DexState.Active or DexState.Paused
  */
-export circuit initialize(): [] {
-  dexState = DEXState.Active;
-  lastBatchRoot = hash([0]);
+export circuit setDexState(newState: DexState): [] {
+  assert(ownPublicKey() == adminKey, "Only admin can change DEX state");
+  dexState = disclose(newState);
 }

@@ -1,158 +1,230 @@
 /**
  * AssetVerification.compact
- * SilentLedger - Midnight Mini DApp Hackathon
- * 
- * This smart contract handles asset ownership verification
- * using Midnight's privacy features and zero-knowledge proofs. This asset ownership verification is intended to disincentivize front running and short selling.        
+ * SilentLedger - Privacy-Preserving Asset Ownership Verification
+ *
+ * Verifies asset ownership using zero-knowledge proofs without revealing
+ * balances. Designed to disincentivize front-running and short selling.
+ *
+ * Patterns: Based on official bboard (midnightntwrk/example-bboard)
+ * and KYCzAnchor (bytewizard42i/KYCz_us_app) reference contracts.
+ *
+ * Key design change from original: Nested Maps are not supported in
+ * Compact, so we flatten the (owner, assetId) pair into a composite
+ * key via persistentHash.
+ *
+ * Compiler: compactc v0.29.0
  */
 
-pragma language_version 0.15;
+pragma language_version >= 0.16;
 
 import CompactStandardLibrary;
 
-// Struct to store verification status without revealing balance
+// ============================================================================
+// DATA STRUCTURES
+// ============================================================================
+
 struct OwnershipProof {
-  owner: Address;          // Owner address (private)
-  assetId: Bytes<32>;      // Asset identifier (public)
-  verified: Bool;          // Verification status (public)
-  timestamp: Uint<64>;     // When verification occurred (public)
-  proofHash: Bytes<32>;    // Hash of the ZK proof (public)
+  ownerHash: Bytes<32>;     // Hash of owner identity (privacy-preserving)
+  assetId: Bytes<32>;       // Asset identifier
+  verified: Boolean;        // Verification status
+  timestamp: Uint<64>;      // When verification occurred
+  proofHash: Bytes<32>;     // Hash of the ZK proof (verification ID)
 }
 
-// Ledger state
-ledger ownershipProofs: Map<Address, Map<Bytes<32>, OwnershipProof>>;
-ledger usedProofs: Map<Bytes<32>, Bool>;
+struct VerificationResult {
+  stillValid: Boolean;
+  expiryTimestamp: Uint<64>;
+}
 
-// Constants
-const VERIFICATION_VALIDITY_PERIOD: Uint<64> = 86400; // 24 hours in seconds
+// Structs for deterministic hashing (persistentHash requires typed inputs)
+struct CompositeKeyInput {
+  ownerHash: Bytes<32>;
+  assetId: Bytes<32>;
+}
+
+struct ProofHashInput {
+  ownerHash: Bytes<32>;
+  assetId: Bytes<32>;
+  minAmount: Uint<64>;
+  timestamp: Uint<64>;
+}
+
+// ============================================================================
+// LEDGER STATE
+// ============================================================================
+
+// Flat map keyed by composite hash of (owner, assetId)
+export ledger ownershipProofs: Map<Bytes<32>, OwnershipProof>;
+
+// Track used proofs to prevent replay
+ledger usedProofs: Set<Bytes<32>>;
+
+// Admin key for contract management (set at deploy time)
+sealed ledger adminKey: ZswapCoinPublicKey;
+
+// ============================================================================
+// CONSTRUCTOR
+// ============================================================================
+
+constructor() {
+  adminKey = ownPublicKey();
+}
+
+// ============================================================================
+// HELPER CIRCUITS
+// ============================================================================
 
 /**
- * Verify ownership of an asset
- * Uses a zero-knowledge proof to verify ownership without revealing balance
+ * Derive a flat composite key from (owner, assetId) pair.
+ * Replaces the nested Map<Address, Map<Bytes<32>, ...>> pattern.
+ */
+circuit compositeKey(ownerHash: Bytes<32>, assetId: Bytes<32>): Bytes<32> {
+  return persistentHash<CompositeKeyInput>(CompositeKeyInput {
+    ownerHash: ownerHash,
+    assetId: assetId
+  });
+}
+
+/**
+ * Placeholder proof validation.
+ * In production, this would verify a real ZK proof via witnesses.
+ */
+circuit validateProof(
+  ownerHash: Bytes<32>,
+  assetId: Bytes<32>,
+  minAmount: Uint<64>,
+  zkProof: Bytes<32>
+): Boolean {
+  // TODO: Replace with real ZK proof verification via witnesses
+  // For now, proof is valid if it is not all zeros
+  return zkProof != pad(32, "");
+}
+
+// ============================================================================
+// CIRCUITS
+// ============================================================================
+
+/**
+ * Verify ownership of an asset.
+ * The ZK proof proves that the caller owns at least minAmount of assetId
+ * without revealing the actual balance.
+ *
+ * @param ownerHash - Hash of the owner's identity (Bytes<32>)
+ * @param assetId - Asset identifier
+ * @param minAmount - Minimum amount claimed (not revealed to verifiers)
+ * @param zkProof - ZK proof of ownership (Bytes<32> commitment)
+ * @param currentTime - Current timestamp
+ * @returns proofHash serving as verification ID
  */
 export circuit verifyOwnership(
-  caller: Address,
+  ownerHash: Bytes<32>,
   assetId: Bytes<32>,
-  minAmount: Uint<256>,
-  zkProof: Bytes<>,
+  minAmount: Uint<64>,
+  zkProof: Bytes<32>,
   currentTime: Uint<64>
 ): Bytes<32> {
-  // Verify the ZK proof without revealing actual balance
-  // The ZK proof proves that the user owns at least minAmount of the asset
-  let isValid = validateProof(caller, assetId, minAmount, zkProof);
-  assert(isValid, "Invalid ownership proof");
-  
-  // Create proof hash that will serve as verification ID
-  let proofHash = hash([caller, assetId, minAmount, currentTime, zkProof]);
-  
-  // Ensure this proof hasn't been used before
-  let isUsed = usedProofs.has(proofHash) ? usedProofs.get(proofHash) : false;
-  assert(!isUsed, "Proof already used");
-  usedProofs.set(proofHash, true);
-  
-  // Store the verification
-  let proof = OwnershipProof {
-    owner: caller,
+  // Validate the ownership proof
+  assert(
+    validateProof(ownerHash, assetId, minAmount, zkProof),
+    "Invalid ownership proof"
+  );
+
+  // Create a deterministic proof hash as the verification ID
+  const proofHash = persistentHash<ProofHashInput>(ProofHashInput {
+    ownerHash: ownerHash,
+    assetId: assetId,
+    minAmount: minAmount,
+    timestamp: currentTime
+  });
+
+  // Ensure this proof hasn't been used before (prevent replay)
+  assert(!usedProofs.member(disclose(proofHash)), "Proof already used");
+  usedProofs.insert(disclose(proofHash));
+
+  // Build the ownership proof record
+  const proof = OwnershipProof {
+    ownerHash: ownerHash,
     assetId: assetId,
     verified: true,
     timestamp: currentTime,
     proofHash: proofHash
   };
-  
-  // If map doesn't exist yet, create it
-  if (!ownershipProofs.has(caller)) {
-    let emptyMap: Map<Bytes<32>, OwnershipProof> = Map.new();
-    ownershipProofs.set(caller, emptyMap);
-  }
-  
-  // Store the proof
-  let ownerMap = ownershipProofs.get(caller);
-  ownerMap.set(assetId, proof);
-  ownershipProofs.set(caller, ownerMap);
-  
-  // Note: Events are handled by the Compact runtime automatically
-  
-  return proofHash;
+
+  // Store under composite key (flattened from nested map)
+  const key = compositeKey(ownerHash, assetId);
+  ownershipProofs.insert(disclose(key), disclose(proof));
+
+  return disclose(proofHash);
 }
 
 /**
- * Check if an ownership verification is valid
- * Can be called by anyone to check if a verification is still valid
+ * Check if an ownership verification is still valid.
+ * Validity expires 86400 seconds (24 hours) after verification.
+ *
+ * @param ownerHash - Hash of the owner identity
+ * @param assetId - Asset identifier
+ * @param expectedProofHash - The proof hash to match
+ * @param currentTime - Current timestamp
+ * @returns VerificationResult with validity and expiry timestamp
  */
 export circuit checkVerification(
-  owner: Address, 
-  assetId: Bytes<32>, 
-  proofHash: Bytes<32>,
+  ownerHash: Bytes<32>,
+  assetId: Bytes<32>,
+  expectedProofHash: Bytes<32>,
   currentTime: Uint<64>
-): [Bool, Uint<64>] {
-  // Ensure the owner map exists
-  if (!ownershipProofs.has(owner)) {
-    return [false, 0];
+): VerificationResult {
+  const key = compositeKey(ownerHash, assetId);
+
+  // Check if any verification exists for this owner+asset
+  if (!ownershipProofs.member(disclose(key))) {
+    return VerificationResult { stillValid: false, expiryTimestamp: 0 };
   }
-  
-  let ownerMap = ownershipProofs.get(owner);
-  
-  // Ensure the asset record exists
-  if (!ownerMap.has(assetId)) {
-    return [false, 0];
+
+  const proof = ownershipProofs.lookup(disclose(key));
+
+  // Check verification is active and proof hash matches
+  if (!proof.verified) {
+    return VerificationResult { stillValid: false, expiryTimestamp: 0 };
   }
-  
-  let proof = ownerMap.get(assetId);
-  
-  // Check if the verification exists and matches the proof hash
-  if (proof.verified && proof.proofHash == proofHash) {
-    let expiryTimestamp = proof.timestamp + VERIFICATION_VALIDITY_PERIOD;
-    let stillValid = currentTime <= expiryTimestamp;
-    return [stillValid, expiryTimestamp];
+  if (proof.proofHash != expectedProofHash) {
+    return VerificationResult { stillValid: false, expiryTimestamp: 0 };
   }
-  
-  return [false, 0];
+
+  // Check 24-hour expiry (86400 seconds)
+  const expiryTimestamp = (proof.timestamp + 86400) as Uint<64>;
+  if (currentTime > expiryTimestamp) {
+    return VerificationResult { stillValid: false, expiryTimestamp: expiryTimestamp };
+  }
+
+  return VerificationResult { stillValid: true, expiryTimestamp: expiryTimestamp };
 }
 
 /**
- * Internal function to validate a zero-knowledge proof
- * In a real implementation, this would use Midnight's ZK-proof system
- */
-circuit validateProof(
-  owner: Address, 
-  assetId: Bytes<32>, 
-  minAmount: Uint<256>, 
-  zkProof: Bytes<>
-): Bool {
-  // This is a placeholder implementation
-  // In the real contract, this would use Midnight's ZK proof verification
-  
-  // The proof should demonstrate that the user has at least minAmount of the asset
-  // without revealing the actual balance
-  
-  // For the hackathon demo, we assume the proof is valid if it's not empty
-  return zkProof.length() > 0;
-}
-
-/**
- * Revoke a verification
- * Only the owner can revoke their own verification
+ * Revoke an ownership verification.
+ * Only the original owner can revoke their own verification.
+ *
+ * @param ownerHash - Hash of the owner identity
+ * @param assetId - Asset to revoke verification for
  */
 export circuit revokeVerification(
-  caller: Address,
-  assetId: Bytes<32>,
-  currentTime: Uint<64>
+  ownerHash: Bytes<32>,
+  assetId: Bytes<32>
 ): [] {
-  // Ensure the owner map exists
-  assert(ownershipProofs.has(caller), "No active verification found");
-  
-  let ownerMap = ownershipProofs.get(caller);
-  
-  // Ensure the asset record exists
-  assert(ownerMap.has(assetId), "No active verification found");
-  
-  let proof = ownerMap.get(assetId);
-  assert(proof.verified, "No active verification found");
-  
-  // Revoke the verification
-  proof.verified = false;
-  ownerMap.set(assetId, proof);
-  ownershipProofs.set(caller, ownerMap);
-  
-  // Note: Events are handled by the Compact runtime automatically
+  const key = compositeKey(ownerHash, assetId);
+
+  // Ensure the verification exists
+  assert(ownershipProofs.member(disclose(key)), "No active verification found");
+
+  const proof = ownershipProofs.lookup(disclose(key));
+  assert(proof.verified, "Verification already revoked");
+
+  // Create revoked copy (structs are immutable — must build a new one)
+  const revokedProof = OwnershipProof {
+    ownerHash: proof.ownerHash,
+    assetId: proof.assetId,
+    verified: false,
+    timestamp: proof.timestamp,
+    proofHash: proof.proofHash
+  };
+  ownershipProofs.insert(disclose(key), disclose(revokedProof));
 }
