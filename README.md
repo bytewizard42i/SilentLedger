@@ -315,6 +315,20 @@ yarn start         # app at http://localhost:8080
 
 This project is a submission for the [Midnight Mini DApp Hackathon](https://midnight.network/hackathon/midnight-mini-dapp-hackathon). It demonstrates how Midnight's privacy features can be applied to create a practical financial application.
 
+## Part of the DIDz Ecosystem
+
+SilentLedger is part of the [EnterpriseZK Labs](https://enterprisezk.com) portfolio — a collection of privacy-preserving protocols built on the Midnight Network.
+
+| Product | Relationship |
+|---------|-------------|
+| **[DIDz.io](https://github.com/bytewizard42i/didz-dapp-system)** | Foundation identity layer — trader identity verification without exposing PII |
+| **[KYCz](https://github.com/bytewizard42i/KYCz_us_app)** | Zero-knowledge KYC for regulatory compliance without data exposure |
+| **[GeoZ](https://github.com/bytewizard42i/GeoZ_us_app_Midnight-Oracle)** | Jurisdiction-aware compliance — prove trading is legal in your jurisdiction |
+| **[MidnightVitals](https://github.com/bytewizard42i/MidnightVitals)** | Real-time diagnostics for contract and proof server health |
+| **[autoDiscovery.legal](https://github.com/SpyCrypto/AutoDiscovery)** | Privacy-preserving legal discovery — potential integration for regulatory audits |
+
+---
+
 ## License
 
 MIT
