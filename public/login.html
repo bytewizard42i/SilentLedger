@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SilentLedger — Sign In</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: #0a0e17;
+            color: #c8d6e5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                linear-gradient(rgba(0, 255, 136, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 136, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            animation: gridPulse 8s ease-in-out infinite;
+            z-index: 0;
+        }
+
+        @keyframes gridPulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.8; } }
+
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: 10%;
+            right: -10%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(0, 255, 136, 0.08), transparent 70%);
+            border-radius: 50%;
+            z-index: 0;
+        }
+
+        .auth-container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 480px;
+            padding: 24px;
+            animation: fadeUp 0.5s ease-out;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .logo-section { text-align: center; margin-bottom: 28px; }
+
+        .logo-icon {
+            width: 64px; height: 64px; border-radius: 16px;
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 28px; margin-bottom: 12px;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.15);
+        }
+
+        .logo-title { font-size: 28px; font-weight: 700; letter-spacing: 2px; color: #fff; }
+        .logo-title span { color: #00ff88; }
+        .logo-sub { font-size: 13px; color: rgba(200, 214, 229, 0.5); margin-top: 4px; }
+
+        .demo-banner {
+            background: linear-gradient(135deg, rgba(255, 191, 0, 0.15), rgba(255, 140, 0, 0.1));
+            border: 1px solid rgba(255, 191, 0, 0.3);
+            color: #ffbf00;
+            text-align: center; padding: 6px 12px; border-radius: 8px;
+            font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+            text-transform: uppercase; margin-bottom: 20px;
+        }
+
+        .auth-card {
+            background: rgba(15, 20, 35, 0.85);
+            border: 1px solid rgba(0, 255, 136, 0.1);
+            border-radius: 16px; padding: 28px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 60px rgba(0, 255, 136, 0.03);
+        }
+
+        .section-label {
+            font-size: 11px; font-weight: 600;
+            color: rgba(0, 255, 136, 0.6);
+            text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px;
+        }
+
+        .method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+
+        .method-btn {
+            display: flex; flex-direction: column; align-items: center; gap: 6px;
+            padding: 14px 8px; background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 12px;
+            cursor: pointer; transition: all 0.2s; color: inherit;
+            font-family: inherit; font-size: inherit; text-align: center;
+        }
+
+        .method-btn:hover { border-color: rgba(0, 255, 136, 0.3); background: rgba(0, 255, 136, 0.05); }
+        .method-btn.active { border-color: rgba(0, 255, 136, 0.4); background: rgba(0, 255, 136, 0.08); box-shadow: 0 0 12px rgba(0, 255, 136, 0.1); }
+
+        .method-btn .icon { font-size: 22px; }
+        .method-btn .label { font-size: 12px; font-weight: 600; color: rgba(255, 255, 255, 0.8); }
+
+        .method-btn .badge {
+            font-size: 8px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.5px; padding: 2px 5px; border-radius: 3px;
+            background: rgba(0, 255, 136, 0.1); color: rgba(0, 255, 136, 0.8);
+        }
+
+        .form-group { margin-bottom: 14px; }
+
+        .form-label { display: block; font-size: 12px; font-weight: 600; color: rgba(200, 214, 229, 0.6); margin-bottom: 6px; }
+
+        .form-input {
+            width: 100%; padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px; color: #fff;
+            font-family: 'Rajdhani', sans-serif; font-size: 14px;
+            transition: all 0.2s; outline: none;
+        }
+
+        .form-input:focus { border-color: rgba(0, 255, 136, 0.4); box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.1); }
+        .form-input::placeholder { color: rgba(200, 214, 229, 0.25); }
+
+        .btn-primary {
+            width: 100%; padding: 12px;
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            border: none; border-radius: 10px; color: #0a0e17;
+            font-family: 'Rajdhani', sans-serif; font-size: 15px;
+            font-weight: 700; letter-spacing: 1px; cursor: pointer;
+            transition: all 0.2s; text-transform: uppercase; margin-top: 8px;
+        }
+
+        .btn-primary:hover { opacity: 0.9; box-shadow: 0 0 20px rgba(0, 255, 136, 0.3); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .status-msg {
+            text-align: center; padding: 10px;
+            font-family: 'Space Mono', monospace; font-size: 12px;
+            color: #00ff88; margin-top: 12px; display: none;
+        }
+
+        .error-msg {
+            padding: 10px 14px;
+            background: rgba(255, 60, 60, 0.1);
+            border: 1px solid rgba(255, 60, 60, 0.2);
+            border-radius: 10px; color: #ff6b6b; font-size: 13px;
+            margin-top: 12px; display: none;
+        }
+
+        .demo-creds {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px; padding: 12px 14px; margin-bottom: 16px;
+        }
+
+        .demo-creds-title {
+            font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+            color: rgba(200, 214, 229, 0.4); margin-bottom: 6px;
+        }
+
+        .demo-creds-row {
+            font-family: 'Space Mono', monospace; font-size: 11px;
+            color: rgba(255, 255, 255, 0.5); margin: 2px 0;
+        }
+
+        .demo-creds-row span { color: #00ff88; cursor: pointer; }
+        .demo-creds-row span:hover { text-decoration: underline; }
+
+        .auth-footer { text-align: center; margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.05); }
+        .auth-footer a { color: #00ff88; text-decoration: none; font-weight: 600; font-size: 13px; }
+        .auth-footer a:hover { text-decoration: underline; }
+        .auth-footer p { font-size: 11px; color: rgba(200, 214, 229, 0.3); margin-top: 8px; }
+
+        .tech-footer {
+            text-align: center; margin-top: 16px;
+            font-size: 10px; color: rgba(200, 214, 229, 0.2);
+            text-transform: uppercase; letter-spacing: 1.5px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner {
+            width: 16px; height: 16px;
+            border: 2px solid rgba(0, 255, 136, 0.2);
+            border-top-color: #00ff88; border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            display: inline-block; vertical-align: middle; margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="logo-section">
+            <div class="logo-icon">🔒</div>
+            <div class="logo-title">Silent<span>Ledger</span></div>
+            <div class="logo-sub">Privacy-Preserving Orderbook</div>
+        </div>
+
+        <div class="demo-banner">🎭 Demo Mode — All Authentication is Simulated 🎭</div>
+
+        <div class="auth-card">
+            <div class="section-label">Authentication Method</div>
+
+            <div class="method-grid" id="method-grid"></div>
+
+            <!-- Demo credentials (for email method) -->
+            <div class="demo-creds" id="demo-creds">
+                <div class="demo-creds-title">Demo Credentials</div>
+                <div class="demo-creds-row">Email: <span onclick="fillDemo()">demo@silentledger.io</span></div>
+                <div class="demo-creds-row">Password: <span onclick="fillDemo()">any password works</span></div>
+            </div>
+
+            <!-- Email form -->
+            <div id="email-form">
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-input" id="email" placeholder="trader@silentledger.io">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" class="form-input" id="password" placeholder="Enter password">
+                </div>
+            </div>
+
+            <button class="btn-primary" id="login-btn" onclick="handleLogin()">Sign In</button>
+
+            <div class="status-msg" id="status"></div>
+            <div class="error-msg" id="error"></div>
+
+            <div class="auth-footer">
+                <a href="/signup.html">Don't have an account? Create one</a>
+                <p>SilentLedger v0.1.0 — Midnight Blockchain</p>
+            </div>
+        </div>
+
+        <div class="tech-footer">
+            Zero-Knowledge Proofs · Anti-Front-Running · Privacy-First
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script>
+        let selectedMethod = 'email';
+
+        const METHODS = [
+            { id: 'email',        label: 'Email',       icon: '📧' },
+            { id: 'pgp-key',      label: 'PGP Key',     icon: '🔐', badge: 'Most Secure' },
+            { id: 'yubikey',       label: 'YubiKey',     icon: '🔐', badge: 'FIDO2' },
+            { id: 'did-wallet',    label: 'DID Wallet',  icon: '🆔', badge: 'Self-Sovereign' },
+            { id: 'trezor',        label: 'Trezor 5',    icon: '🔑', badge: 'Ed25519' },
+            { id: 'biometric',     label: 'Biometric',   icon: '👆', badge: 'FIDO2' },
+            { id: 'chrome-oauth',  label: 'Google',      icon: '🌐' },
+            { id: 'brave-oauth',   label: 'Brave',       icon: '🦁' },
+        ];
+
+        // Render method grid
+        const grid = document.getElementById('method-grid');
+        METHODS.forEach(m => {
+            const btn = document.createElement('button');
+            btn.className = 'method-btn' + (m.id === 'email' ? ' active' : '');
+            btn.id = 'btn-' + m.id;
+            btn.onclick = () => pickMethod(m.id);
+            btn.innerHTML = `
+                <span class="icon">${m.icon}</span>
+                <span class="label">${m.label}</span>
+                ${m.badge ? `<span class="badge">${m.badge}</span>` : ''}
+            `;
+            grid.appendChild(btn);
+        });
+
+        function pickMethod(id) {
+            selectedMethod = id;
+            document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('btn-' + id).classList.add('active');
+
+            const emailForm = document.getElementById('email-form');
+            const demoCreds = document.getElementById('demo-creds');
+            emailForm.style.display = id === 'email' ? 'block' : 'none';
+            demoCreds.style.display = id === 'email' ? 'block' : 'none';
+
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('status').style.display = 'none';
+        }
+
+        function fillDemo() {
+            document.getElementById('email').value = 'demo@silentledger.io';
+            document.getElementById('password').value = 'demo123';
+        }
+
+        async function handleLogin() {
+            const btn = document.getElementById('login-btn');
+            const statusEl = document.getElementById('status');
+            const errorEl = document.getElementById('error');
+            errorEl.style.display = 'none';
+            btn.disabled = true;
+
+            try {
+                if (selectedMethod !== 'email') {
+                    statusEl.style.display = 'block';
+                    await slRunSimulation(selectedMethod, msg => {
+                        statusEl.innerHTML = '<span class="spinner"></span>' + msg;
+                    });
+                } else {
+                    statusEl.style.display = 'block';
+                    statusEl.innerHTML = '<span class="spinner"></span>Authenticating...';
+                    await new Promise(r => setTimeout(r, 800));
+                }
+
+                const email = document.getElementById('email').value || 'demo@silentledger.io';
+                slLogin(selectedMethod, email);
+                statusEl.innerHTML = '✓ Success! Redirecting...';
+                statusEl.style.color = '#00ff88';
+                setTimeout(() => { window.location.href = '/index.html'; }, 500);
+            } catch (err) {
+                errorEl.textContent = err.message;
+                errorEl.style.display = 'block';
+                statusEl.style.display = 'none';
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

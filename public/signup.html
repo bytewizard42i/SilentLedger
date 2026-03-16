@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SilentLedger — Create Account</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: #0a0e17;
+            color: #c8d6e5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Animated background grid */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                linear-gradient(rgba(0, 255, 136, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 136, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            animation: gridPulse 8s ease-in-out infinite;
+            z-index: 0;
+        }
+
+        @keyframes gridPulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.8; }
+        }
+
+        /* Glow orbs */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 20%;
+            left: -10%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(0, 255, 136, 0.08), transparent 70%);
+            border-radius: 50%;
+            z-index: 0;
+        }
+
+        .auth-container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 520px;
+            padding: 24px;
+        }
+
+        /* Logo */
+        .logo-section {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .logo-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 12px;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.15);
+        }
+
+        .logo-title {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: #fff;
+        }
+
+        .logo-title span { color: #00ff88; }
+
+        .logo-sub {
+            font-size: 13px;
+            color: rgba(200, 214, 229, 0.5);
+            margin-top: 4px;
+        }
+
+        /* Demo banner */
+        .demo-banner {
+            background: linear-gradient(135deg, rgba(255, 191, 0, 0.15), rgba(255, 140, 0, 0.1));
+            border: 1px solid rgba(255, 191, 0, 0.3);
+            color: #ffbf00;
+            text-align: center;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        /* Progress */
+        .progress-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .progress-step {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.3);
+            transition: all 0.3s;
+        }
+
+        .progress-step.active {
+            border-color: #00ff88;
+            color: #00ff88;
+            background: rgba(0, 255, 136, 0.1);
+            box-shadow: 0 0 12px rgba(0, 255, 136, 0.2);
+        }
+
+        .progress-step.done {
+            border-color: #00ff88;
+            color: #0a0e17;
+            background: #00ff88;
+        }
+
+        .progress-line {
+            width: 40px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 1px;
+            transition: background 0.3s;
+        }
+
+        .progress-line.done { background: #00ff88; }
+
+        /* Card */
+        .auth-card {
+            background: rgba(15, 20, 35, 0.85);
+            border: 1px solid rgba(0, 255, 136, 0.1);
+            border-radius: 16px;
+            padding: 28px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 60px rgba(0, 255, 136, 0.03);
+        }
+
+        .step-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: rgba(0, 255, 136, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+        }
+
+        .step-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 16px;
+        }
+
+        /* Method grid */
+        .method-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .method-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+            color: inherit;
+            font-family: inherit;
+            font-size: inherit;
+        }
+
+        .method-btn:hover {
+            border-color: rgba(0, 255, 136, 0.3);
+            background: rgba(0, 255, 136, 0.05);
+        }
+
+        .method-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .method-info { flex: 1; min-width: 0; }
+
+        .method-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.85);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .method-badge {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(0, 255, 136, 0.1);
+            color: rgba(0, 255, 136, 0.8);
+        }
+
+        .method-desc {
+            font-size: 11px;
+            color: rgba(200, 214, 229, 0.4);
+            margin-top: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Form inputs */
+        .form-group { margin-bottom: 14px; }
+
+        .form-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: rgba(200, 214, 229, 0.6);
+            margin-bottom: 6px;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #fff;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 14px;
+            transition: all 0.2s;
+            outline: none;
+        }
+
+        .form-input:focus, .form-select:focus {
+            border-color: rgba(0, 255, 136, 0.4);
+            box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.1);
+        }
+
+        .form-input::placeholder { color: rgba(200, 214, 229, 0.25); }
+
+        .form-select option { background: #0f1423; color: #fff; }
+
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        /* Buttons */
+        .btn-primary {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            border: none;
+            border-radius: 10px;
+            color: #0a0e17;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+
+        .btn-primary:hover { opacity: 0.9; box-shadow: 0 0 20px rgba(0, 255, 136, 0.3); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-secondary {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: rgba(255, 255, 255, 0.7);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover { background: rgba(255, 255, 255, 0.1); }
+
+        .btn-row { display: flex; gap: 12px; margin-top: 20px; }
+        .btn-row .btn-primary { flex: 2; }
+        .btn-row .btn-secondary { flex: 1; }
+
+        /* Simulation */
+        .sim-container { text-align: center; padding: 32px 0; }
+
+        .sim-icon { font-size: 40px; margin-bottom: 16px; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .sim-spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid rgba(0, 255, 136, 0.1);
+            border-top-color: #00ff88;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        .sim-status {
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            color: #00ff88;
+        }
+
+        .sim-label {
+            font-size: 10px;
+            color: rgba(200, 214, 229, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-top: 8px;
+        }
+
+        /* Verification badge */
+        .verified-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            background: rgba(0, 255, 136, 0.08);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 10px;
+            color: #00ff88;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        /* Crypto metadata */
+        .crypto-meta {
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            margin-bottom: 14px;
+        }
+
+        .crypto-meta-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(200, 214, 229, 0.4);
+            margin-bottom: 4px;
+        }
+
+        .crypto-meta-value {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            word-break: break-all;
+        }
+
+        /* Error */
+        .error-msg {
+            padding: 10px 14px;
+            background: rgba(255, 60, 60, 0.1);
+            border: 1px solid rgba(255, 60, 60, 0.2);
+            border-radius: 10px;
+            color: #ff6b6b;
+            font-size: 13px;
+            margin-bottom: 14px;
+            display: none;
+        }
+
+        /* Footer */
+        .auth-footer {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .auth-footer a {
+            color: #00ff88;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .auth-footer a:hover { text-decoration: underline; }
+
+        .auth-footer p {
+            font-size: 11px;
+            color: rgba(200, 214, 229, 0.3);
+            margin-top: 8px;
+        }
+
+        .tech-footer {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 10px;
+            color: rgba(200, 214, 229, 0.2);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        /* Hidden utility */
+        .hidden { display: none !important; }
+
+        /* Fade animation */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .auth-container { animation: fadeUp 0.5s ease-out; }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <!-- Logo -->
+        <div class="logo-section">
+            <div class="logo-icon">🔒</div>
+            <div class="logo-title">Silent<span>Ledger</span></div>
+            <div class="logo-sub">Privacy-Preserving Orderbook</div>
+        </div>
+
+        <!-- Demo banner -->
+        <div class="demo-banner">🎭 Demo Mode — All Authentication is Simulated 🎭</div>
+
+        <!-- Progress -->
+        <div class="progress-bar">
+            <div class="progress-step active" id="ps1">1</div>
+            <div class="progress-line" id="pl1"></div>
+            <div class="progress-step" id="ps2">2</div>
+            <div class="progress-line" id="pl2"></div>
+            <div class="progress-step" id="ps3">3</div>
+        </div>
+
+        <!-- Card -->
+        <div class="auth-card">
+            <!-- Step 1: Choose method -->
+            <div id="step-method">
+                <div class="step-label">Step 1</div>
+                <div class="step-title">Choose authentication method</div>
+                <div class="method-grid" id="method-grid"></div>
+            </div>
+
+            <!-- Step 2: Simulation -->
+            <div id="step-sim" class="hidden">
+                <div class="sim-container">
+                    <div class="sim-icon" id="sim-icon"></div>
+                    <div class="sim-spinner"></div>
+                    <div class="sim-status" id="sim-status">Connecting...</div>
+                    <div class="sim-label">Simulated demo flow</div>
+                </div>
+            </div>
+
+            <!-- Step 2 alt: Email credentials -->
+            <div id="step-creds" class="hidden">
+                <div class="step-label">Step 2</div>
+                <div class="step-title">Create your credentials</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">First Name</label>
+                        <input type="text" class="form-input" id="firstName" placeholder="Satoshi">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Last Name</label>
+                        <input type="text" class="form-input" id="lastName" placeholder="Nakamoto">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-input" id="email" placeholder="trader@silentledger.io">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" class="form-input" id="password" placeholder="At least 6 characters">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Confirm Password</label>
+                    <input type="password" class="form-input" id="confirmPassword" placeholder="Re-enter password">
+                </div>
+                <div class="error-msg" id="creds-error"></div>
+                <div class="btn-row">
+                    <button class="btn-secondary" onclick="goToStep('method')">← Back</button>
+                    <button class="btn-primary" onclick="validateCredentials()">Continue</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Profile -->
+            <div id="step-profile" class="hidden">
+                <div class="step-label">Step 3</div>
+                <div class="step-title">Trader profile</div>
+
+                <div class="verified-badge hidden" id="verified-badge">
+                    <span>✓</span>
+                    <span id="verified-text"></span>
+                </div>
+
+                <div id="crypto-meta-container"></div>
+
+                <!-- Name fields for non-email methods -->
+                <div id="name-fields-profile" class="hidden">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">First Name</label>
+                            <input type="text" class="form-input" id="firstName2" placeholder="Satoshi">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Last Name</label>
+                            <input type="text" class="form-input" id="lastName2" placeholder="Nakamoto">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-input" id="email2" placeholder="trader@silentledger.io">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Trading Role</label>
+                    <select class="form-select" id="role">
+                        <option value="">Select your role</option>
+                        <option value="Market Maker">Market Maker</option>
+                        <option value="Institutional Trader">Institutional Trader</option>
+                        <option value="Retail Trader">Retail Trader</option>
+                        <option value="Liquidity Provider">Liquidity Provider</option>
+                        <option value="Portfolio Manager">Portfolio Manager</option>
+                        <option value="Compliance Officer">Compliance Officer</option>
+                        <option value="Auditor">Auditor</option>
+                        <option value="Observer">Observer / Researcher</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Organization</label>
+                    <input type="text" class="form-input" id="org" placeholder="e.g. Midnight Capital LLC">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Primary Market</label>
+                    <select class="form-select" id="market">
+                        <option value="">Select market</option>
+                        <option value="Crypto / Digital Assets">Crypto / Digital Assets</option>
+                        <option value="Foreign Exchange">Foreign Exchange</option>
+                        <option value="Equities">Equities</option>
+                        <option value="Fixed Income">Fixed Income</option>
+                        <option value="Commodities">Commodities</option>
+                        <option value="Derivatives">Derivatives</option>
+                        <option value="Carbon Credits">Carbon Credits</option>
+                        <option value="All Markets">All Markets</option>
+                    </select>
+                </div>
+
+                <div class="error-msg" id="profile-error"></div>
+                <div class="btn-row">
+                    <button class="btn-secondary" onclick="goToStep('method')">← Start Over</button>
+                    <button class="btn-primary" id="submit-btn" onclick="handleSubmit()">Create Account</button>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="auth-footer">
+                <a href="/login.html">Already have an account? Sign in</a>
+                <p>SilentLedger v0.1.0 — Midnight Blockchain</p>
+            </div>
+        </div>
+
+        <div class="tech-footer">
+            Zero-Knowledge Proofs · Anti-Front-Running · Privacy-First
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script>
+        // ─── State ──────────────────────────────────────────
+        let selectedMethod = null;
+        let formMeta = {};
+
+        const METHODS = [
+            { id: 'email',        label: 'Email & Password',  icon: '📧', desc: 'Traditional signup with Argon2id-derived key' },
+            { id: 'pgp-key',      label: 'PGP / NitroKey',    icon: '🔐', desc: 'OpenPGP smart card — hardware-bound private key',       badge: 'Most Secure' },
+            { id: 'yubikey',       label: 'YubiKey',           icon: '🔐', desc: 'FIDO2/WebAuthn hardware security key — ECDSA P-256',    badge: 'FIDO2' },
+            { id: 'did-wallet',    label: 'DID Wallet',        icon: '🆔', desc: 'Decentralized Identifier — self-sovereign identity',    badge: 'Self-Sovereign' },
+            { id: 'trezor',        label: 'Trezor 5',          icon: '🔑', desc: 'Hardware wallet — native Ed25519 signing for Midnight', badge: 'Ed25519' },
+            { id: 'biometric',     label: 'Biometric',         icon: '👆', desc: 'Fingerprint or facial recognition via WebAuthn',        badge: 'FIDO2' },
+            { id: 'chrome-oauth',  label: 'Google / Chrome',   icon: '🌐', desc: 'Use your Google account via Chrome sign-in' },
+            { id: 'brave-oauth',   label: 'Brave Browser',     icon: '🦁', desc: 'Use your Brave browser identity + BAT wallet' },
+        ];
+
+        const METHOD_ICONS = {
+            'pgp-key': '🔐', 'yubikey': '🔐', 'did-wallet': '🆔',
+            'trezor': '🔑', 'biometric': '👆', 'chrome-oauth': '🌐', 'brave-oauth': '🦁'
+        };
+
+        const VERIFIED_TEXTS = {
+            'pgp-key': 'PGP hardware key verified',
+            'yubikey': 'YubiKey FIDO2 verified',
+            'did-wallet': 'DID wallet connected',
+            'trezor': 'Trezor wallet connected — Ed25519',
+            'biometric': 'Biometric identity verified — FIDO2',
+            'chrome-oauth': 'Google account linked',
+            'brave-oauth': 'Brave identity linked',
+        };
+
+        // ─── Render method grid ─────────────────────────────
+        const grid = document.getElementById('method-grid');
+        METHODS.forEach(m => {
+            const btn = document.createElement('button');
+            btn.className = 'method-btn';
+            btn.onclick = () => selectMethod(m.id);
+            btn.innerHTML = `
+                <div class="method-icon">${m.icon}</div>
+                <div class="method-info">
+                    <div class="method-name">
+                        ${m.label}
+                        ${m.badge ? `<span class="method-badge">${m.badge}</span>` : ''}
+                    </div>
+                    <div class="method-desc">${m.desc}</div>
+                </div>
+            `;
+            grid.appendChild(btn);
+        });
+
+        // ─── Navigation ─────────────────────────────────────
+        function goToStep(step) {
+            document.getElementById('step-method').classList.toggle('hidden', step !== 'method');
+            document.getElementById('step-sim').classList.toggle('hidden', step !== 'sim');
+            document.getElementById('step-creds').classList.toggle('hidden', step !== 'creds');
+            document.getElementById('step-profile').classList.toggle('hidden', step !== 'profile');
+            updateProgress(step === 'method' ? 1 : step === 'creds' || step === 'sim' ? 2 : 3);
+        }
+
+        function updateProgress(current) {
+            for (let i = 1; i <= 3; i++) {
+                const step = document.getElementById('ps' + i);
+                step.className = 'progress-step' + (i < current ? ' done' : i === current ? ' active' : '');
+                step.textContent = i < current ? '✓' : i;
+            }
+            document.getElementById('pl1').className = 'progress-line' + (current > 1 ? ' done' : '');
+            document.getElementById('pl2').className = 'progress-line' + (current > 2 ? ' done' : '');
+        }
+
+        // ─── Method selection ───────────────────────────────
+        async function selectMethod(method) {
+            selectedMethod = method;
+            formMeta = {};
+
+            if (method === 'email') {
+                goToStep('creds');
+                return;
+            }
+
+            // Run simulation
+            goToStep('sim');
+            document.getElementById('sim-icon').textContent = METHOD_ICONS[method] || '🔗';
+            await slRunSimulation(method, msg => {
+                document.getElementById('sim-status').textContent = msg;
+            });
+
+            // Set metadata
+            if (method === 'pgp-key') formMeta.pgpFingerprint = '7A4F 2E8C 1B3D 9E6F A08B C52D 3F71 E4A9 D6B8 0C15';
+            if (method === 'did-wallet') formMeta.didUri = 'did:prism:abc123def456...xyz789';
+            if (method === 'trezor') formMeta.trezorPublicKey = 'ed25519:9F3A7B2E4D1C8F5A...B7C2';
+            if (method === 'biometric') formMeta.biometricType = 'fingerprint';
+            if (method === 'chrome-oauth') { formMeta.oauthProvider = 'chrome'; formMeta.email = 'demo.user@gmail.com'; }
+            if (method === 'brave-oauth') { formMeta.oauthProvider = 'brave'; formMeta.email = 'demo.user@brave.com'; }
+
+            await new Promise(r => setTimeout(r, 400));
+            showProfileStep();
+        }
+
+        function showProfileStep() {
+            goToStep('profile');
+
+            // Verification badge
+            const badge = document.getElementById('verified-badge');
+            const badgeText = document.getElementById('verified-text');
+            if (selectedMethod !== 'email' && VERIFIED_TEXTS[selectedMethod]) {
+                badge.classList.remove('hidden');
+                badgeText.textContent = VERIFIED_TEXTS[selectedMethod];
+            } else {
+                badge.classList.add('hidden');
+            }
+
+            // Crypto metadata
+            const container = document.getElementById('crypto-meta-container');
+            container.innerHTML = '';
+            if (formMeta.pgpFingerprint) addCryptoMeta(container, 'PGP Key Fingerprint', formMeta.pgpFingerprint);
+            if (formMeta.didUri) addCryptoMeta(container, 'Decentralized Identifier', formMeta.didUri);
+            if (formMeta.trezorPublicKey) addCryptoMeta(container, 'Trezor Ed25519 Public Key', formMeta.trezorPublicKey);
+            if (formMeta.biometricType) addCryptoMeta(container, 'Biometric Method', formMeta.biometricType + ' — FIDO2 WebAuthn');
+
+            // Name fields for non-email
+            const nameFields = document.getElementById('name-fields-profile');
+            if (selectedMethod !== 'email') {
+                nameFields.classList.remove('hidden');
+                if (formMeta.email) document.getElementById('email2').value = formMeta.email;
+            } else {
+                nameFields.classList.add('hidden');
+            }
+        }
+
+        function addCryptoMeta(container, label, value) {
+            const div = document.createElement('div');
+            div.className = 'crypto-meta';
+            div.innerHTML = `<div class="crypto-meta-label">${label}</div><div class="crypto-meta-value">${value}</div>`;
+            container.appendChild(div);
+        }
+
+        // ─── Validation ─────────────────────────────────────
+        function validateCredentials() {
+            const firstName = document.getElementById('firstName').value.trim();
+            const lastName = document.getElementById('lastName').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const confirm = document.getElementById('confirmPassword').value;
+            const errEl = document.getElementById('creds-error');
+
+            if (!firstName) { showError(errEl, 'First name is required.'); return; }
+            if (!lastName) { showError(errEl, 'Last name is required.'); return; }
+            if (!email || !email.includes('@')) { showError(errEl, 'A valid email is required.'); return; }
+            if (password.length < 6) { showError(errEl, 'Password must be at least 6 characters.'); return; }
+            if (password !== confirm) { showError(errEl, 'Passwords do not match.'); return; }
+
+            errEl.style.display = 'none';
+            showProfileStep();
+        }
+
+        function showError(el, msg) {
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+
+        // ─── Submit ─────────────────────────────────────────
+        function handleSubmit() {
+            const firstName = selectedMethod === 'email'
+                ? document.getElementById('firstName').value.trim()
+                : document.getElementById('firstName2').value.trim();
+            const lastName = selectedMethod === 'email'
+                ? document.getElementById('lastName').value.trim()
+                : document.getElementById('lastName2').value.trim();
+            const email = selectedMethod === 'email'
+                ? document.getElementById('email').value.trim()
+                : (document.getElementById('email2').value.trim() || firstName.toLowerCase() + '.' + lastName.toLowerCase() + '@silentledger.demo');
+            const role = document.getElementById('role').value;
+            const org = document.getElementById('org').value.trim();
+            const market = document.getElementById('market').value;
+            const errEl = document.getElementById('profile-error');
+
+            if (!firstName) { showError(errEl, 'First name is required.'); return; }
+            if (!lastName) { showError(errEl, 'Last name is required.'); return; }
+            if (!role) { showError(errEl, 'Please select a trading role.'); return; }
+            if (!org) { showError(errEl, 'Organization is required.'); return; }
+            if (!market) { showError(errEl, 'Please select a primary market.'); return; }
+
+            const password = selectedMethod === 'email'
+                ? document.getElementById('password').value
+                : 'demo-key-auth';
+
+            const data = {
+                firstName, lastName, email, password,
+                role, firm: org, jurisdiction: market,
+                signupMethod: selectedMethod,
+                ...formMeta,
+            };
+
+            try {
+                slSignup(data);
+                window.location.href = '/index.html';
+            } catch (err) {
+                showError(errEl, err.message);
+            }
+        }
+    </script>
+</body>
+</html>
