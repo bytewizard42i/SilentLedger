@@ -325,7 +325,7 @@ SilentLedger is part of the [EnterpriseZK Labs](https://enterprisezk.com) portfo
 | **[KYCz](https://github.com/bytewizard42i/KYCz_us_app)** | Zero-knowledge KYC for regulatory compliance without data exposure |
 | **[GeoZ](https://github.com/bytewizard42i/GeoZ_us_app_Midnight-Oracle)** | Jurisdiction-aware compliance — prove trading is legal in your jurisdiction |
 | **[MidnightVitals](https://github.com/bytewizard42i/MidnightVitals)** | Real-time diagnostics for contract and proof server health |
-| **[autoDiscovery.legal](https://github.com/bytewizard42i/autoDiscovery_legal)** | Privacy-preserving legal discovery — potential integration for regulatory audits |
+| **[DiscoveryManagement](https://github.com/bytewizard42i/DiscoveryManagement)** | Privacy-preserving legal discovery — potential integration for regulatory audits |
 
 ---
 
