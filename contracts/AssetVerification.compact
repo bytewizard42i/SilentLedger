@@ -15,7 +15,7 @@
  * Compiler: compactc v0.29.0
  */
 
-pragma language_version >= 0.16 && <= 0.21;
+pragma language_version >= 0.16 && <= 0.23;
 
 import CompactStandardLibrary;
 
