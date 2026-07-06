@@ -332,3 +332,13 @@ SilentLedger is part of the [EnterpriseZK Labs](https://enterprisezk.com) portfo
 ## License
 
 MIT
+
+## Three-pillar connection
+
+SilentLedger is a **consumer product** built on the DIDz three-pillar model:
+
+- **DIDz (root identity):** Traders hold a DIDz; SilentLedger verifies trading eligibility without revealing identity.
+- **AgenticDID (agent authority):** Trading agents can be delegated scoped grants to place orders within limits.
+- **RWAz (object identity):** Asset verification ties into RWAz for proving ownership of traded assets.
+
+SilentLedger uses `SilentOrderbook.compact` (4 circuits), `ObfuscatedOrderbook.compact` (5 circuits), and `AssetVerification.compact` (3 circuits).
