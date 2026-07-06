@@ -342,3 +342,14 @@ SilentLedger is a **consumer product** built on the DIDz three-pillar model:
 - **RWAz (object identity):** Asset verification ties into RWAz for proving ownership of traded assets.
 
 SilentLedger uses `SilentOrderbook.compact` (4 circuits), `ObfuscatedOrderbook.compact` (5 circuits), and `AssetVerification.compact` (3 circuits).
+
+---
+
+## DIDz Ecosystem
+
+This project is part of the DIDz ecosystem — a suite of privacy-preserving
+identity, credential, and application tools built on Midnight Network.
+
+![DIDz Ecosystem Map](docs/DIDz-ecosystem-map.png)
+
+See the full ecosystem map above, or visit [didz.io](https://didz.io) for details.
