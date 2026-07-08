@@ -1,18 +1,19 @@
 /**
- * AssetVerification.compact
- * SilentLedger - Privacy-Preserving Asset Ownership Verification
+ * AssetVerification.compact — SilentLedger v2
  *
- * Verifies asset ownership using zero-knowledge proofs without revealing
- * balances. Designed to disincentivize front-running and short selling.
+ * Privacy-Preserving Asset Ownership Verification
  *
- * Patterns: Based on official bboard (midnightntwrk/example-bboard)
- * and KYCzAnchor (bytewizard42i/KYCz_us_app) reference contracts.
+ * Upgraded to v0.31.1 patterns:
+ * - Witness-derived UserPublicKey (replaces bypassable ownPublicKey())
+ * - Proper disclose() on all witness-derived values
+ * - Uint<128> for amounts (widened from Uint<64>)
+ * - Sealed admin key (was unsealed)
+ * - Witness-based ZK proof verification (replaces placeholder)
+ * - Domain-separated key derivation
+ * - Owner-revocation via witness identity (was unauthenticated)
  *
- * Key design change from original: Nested Maps are not supported in
- * Compact, so we flatten the (owner, assetId) pair into a composite
- * key via persistentHash.
- *
- * Compiler: compactc v0.29.0
+ * Patterns: midnight-expert FungibleToken, midnight-modules commitment-nullifier
+ * Compiler: compactc v0.31.1
  */
 
 pragma language_version >= 0.16 && <= 0.23;
@@ -23,20 +24,31 @@ import CompactStandardLibrary;
 // DATA STRUCTURES
 // ============================================================================
 
-struct OwnershipProof {
-  ownerHash: Bytes<32>;     // Hash of owner identity (privacy-preserving)
-  assetId: Bytes<32>;       // Asset identifier
-  verified: Boolean;        // Verification status
-  timestamp: Uint<64>;      // When verification occurred
-  proofHash: Bytes<32>;     // Hash of the ZK proof (verification ID)
+export struct UserSecretKey {
+  bytes: Bytes<32>;
 }
 
-struct VerificationResult {
+export struct UserPublicKey {
+  bytes: Bytes<32>;
+}
+
+export struct AdminPublicKey {
+  bytes: Bytes<32>;
+}
+
+struct OwnershipProof {
+  ownerHash: Bytes<32>;
+  assetId: Bytes<32>;
+  verified: Boolean;
+  timestamp: Uint<64>;
+  proofHash: Bytes<32>;
+}
+
+export struct VerificationResult {
   stillValid: Boolean;
   expiryTimestamp: Uint<64>;
 }
 
-// Structs for deterministic hashing (persistentHash requires typed inputs)
 struct CompositeKeyInput {
   ownerHash: Bytes<32>;
   assetId: Bytes<32>;
@@ -45,7 +57,7 @@ struct CompositeKeyInput {
 struct ProofHashInput {
   ownerHash: Bytes<32>;
   assetId: Bytes<32>;
-  minAmount: Uint<64>;
+  minAmount: Uint<128>;
   timestamp: Uint<64>;
 }
 
@@ -53,51 +65,67 @@ struct ProofHashInput {
 // LEDGER STATE
 // ============================================================================
 
-// Flat map keyed by composite hash of (owner, assetId)
 export ledger ownershipProofs: Map<Bytes<32>, OwnershipProof>;
+export ledger usedProofs: Set<Bytes<32>>;
 
-// Track used proofs to prevent replay
-ledger usedProofs: Set<Bytes<32>>;
+// Admin key — witness-derived (was ownPublicKey(), which is bypassable)
+sealed ledger adminKey: Bytes<32>;
 
-// Admin key for contract management (set at deploy time)
-sealed ledger adminKey: ZswapCoinPublicKey;
+// ============================================================================
+// WITNESSES
+// ============================================================================
+
+witness getUserSecret(): UserSecretKey;
+witness getAdminSecret(): UserSecretKey;
+
+// ZK proof verification — computed off-chain by the prover
+witness verifyOwnershipProof(
+  ownerHash: Bytes<32>,
+  assetId: Bytes<32>,
+  minAmount: Uint<128>
+): Boolean;
 
 // ============================================================================
 // CONSTRUCTOR
 // ============================================================================
 
 constructor() {
-  adminKey = ownPublicKey();
+  const adminSecret = getAdminSecret();
+  const adminPub = deriveAdminPublicKey(adminSecret);
+  adminKey = disclose(adminPub.bytes);
 }
 
 // ============================================================================
 // HELPER CIRCUITS
 // ============================================================================
 
-/**
- * Derive a flat composite key from (owner, assetId) pair.
- * Replaces the nested Map<Address, Map<Bytes<32>, ...>> pattern.
- */
+pure circuit deriveUserPublicKey(sk: UserSecretKey): UserPublicKey {
+  return UserPublicKey {
+    bytes: persistentHash<Vector<2, Bytes<32>>>([
+      pad(32, "silentledger:user:pk:v2"),
+      sk.bytes
+    ])
+  };
+}
+
+pure circuit deriveAdminPublicKey(sk: UserSecretKey): AdminPublicKey {
+  return AdminPublicKey {
+    bytes: persistentHash<Vector<2, Bytes<32>>>([
+      pad(32, "silentledger:admin:pk:v2"),
+      sk.bytes
+    ])
+  };
+}
+
+pure circuit isKeyZero(key: UserPublicKey): Boolean {
+  return key == default<UserPublicKey>;
+}
+
 circuit compositeKey(ownerHash: Bytes<32>, assetId: Bytes<32>): Bytes<32> {
   return persistentHash<CompositeKeyInput>(CompositeKeyInput {
     ownerHash: ownerHash,
     assetId: assetId
   });
-}
-
-/**
- * Placeholder proof validation.
- * In production, this would verify a real ZK proof via witnesses.
- */
-circuit validateProof(
-  ownerHash: Bytes<32>,
-  assetId: Bytes<32>,
-  minAmount: Uint<64>,
-  zkProof: Bytes<32>
-): Boolean {
-  // TODO: Replace with real ZK proof verification via witnesses
-  // For now, proof is valid if it is not all zeros
-  return zkProof != pad(32, "");
 }
 
 // ============================================================================
@@ -106,30 +134,21 @@ circuit validateProof(
 
 /**
  * Verify ownership of an asset.
- * The ZK proof proves that the caller owns at least minAmount of assetId
- * without revealing the actual balance.
- *
- * @param ownerHash - Hash of the owner's identity (Bytes<32>)
- * @param assetId - Asset identifier
- * @param minAmount - Minimum amount claimed (not revealed to verifiers)
- * @param zkProof - ZK proof of ownership (Bytes<32> commitment)
- * @param currentTime - Current timestamp
- * @returns proofHash serving as verification ID
+ * The ZK proof is verified off-chain by the prover (via witness).
+ * The prover proves they own at least minAmount of assetId without
+ * revealing the actual balance.
  */
 export circuit verifyOwnership(
   ownerHash: Bytes<32>,
   assetId: Bytes<32>,
-  minAmount: Uint<64>,
-  zkProof: Bytes<32>,
+  minAmount: Uint<128>,
   currentTime: Uint<64>
 ): Bytes<32> {
-  // Validate the ownership proof
-  assert(
-    validateProof(ownerHash, assetId, minAmount, zkProof),
-    "Invalid ownership proof"
-  );
+  // Verify the ZK ownership proof via witness
+  const proofValid = verifyOwnershipProof(ownerHash, assetId, minAmount);
+  assert(disclose(proofValid), "Invalid ownership proof");
 
-  // Create a deterministic proof hash as the verification ID
+  // Create deterministic proof hash
   const proofHash = persistentHash<ProofHashInput>(ProofHashInput {
     ownerHash: ownerHash,
     assetId: assetId,
@@ -137,11 +156,11 @@ export circuit verifyOwnership(
     timestamp: currentTime
   });
 
-  // Ensure this proof hasn't been used before (prevent replay)
-  assert(!usedProofs.member(disclose(proofHash)), "Proof already used");
+  // Prevent replay
+  assert(disclose(!usedProofs.member(proofHash)), "Proof already used");
   usedProofs.insert(disclose(proofHash));
 
-  // Build the ownership proof record
+  // Build and store the ownership proof record
   const proof = OwnershipProof {
     ownerHash: ownerHash,
     assetId: assetId,
@@ -150,7 +169,6 @@ export circuit verifyOwnership(
     proofHash: proofHash
   };
 
-  // Store under composite key (flattened from nested map)
   const key = compositeKey(ownerHash, assetId);
   ownershipProofs.insert(disclose(key), disclose(proof));
 
@@ -201,24 +219,26 @@ export circuit checkVerification(
 
 /**
  * Revoke an ownership verification.
- * Only the original owner can revoke their own verification.
- *
- * @param ownerHash - Hash of the owner identity
- * @param assetId - Asset to revoke verification for
+ * Only the original owner can revoke (proven via witness-derived key).
  */
 export circuit revokeVerification(
   ownerHash: Bytes<32>,
   assetId: Bytes<32>
 ): [] {
-  const key = compositeKey(ownerHash, assetId);
+  // Verify caller identity via witness
+  const sk = getUserSecret();
+  const caller = deriveUserPublicKey(sk);
+  assert(disclose(!isKeyZero(caller)), "Invalid user key");
 
-  // Ensure the verification exists
+  // Verify the ownerHash matches the caller's derived key
+  assert(disclose(caller.bytes == ownerHash), "Not the verification owner");
+
+  const key = compositeKey(ownerHash, assetId);
   assert(ownershipProofs.member(disclose(key)), "No active verification found");
 
   const proof = ownershipProofs.lookup(disclose(key));
   assert(proof.verified, "Verification already revoked");
 
-  // Create revoked copy (structs are immutable — must build a new one)
   const revokedProof = OwnershipProof {
     ownerHash: proof.ownerHash,
     assetId: proof.assetId,

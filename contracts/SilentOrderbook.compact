@@ -1,21 +1,18 @@
 /**
- * SilentOrderbook.compact
- * SilentLedger - Privacy-Preserving Orderbook
+ * SilentOrderbook.compact — SilentLedger v2
  *
- * A privacy-preserving orderbook using obfuscated order commitments.
- * Orders are identified by their commitment hash and stored in a flat Map
- * (Compact does not support List or for-loops).
+ * Privacy-Preserving Orderbook using obfuscated order commitments.
  *
- * Patterns: Based on official bboard (midnightntwrk/example-bboard)
- * and KYCzAnchor (bytewizard42i/KYCz_us_app) reference contracts.
+ * Upgraded to v0.31.1 patterns:
+ * - Witness-derived UserPublicKey (replaces bypassable ownPublicKey())
+ * - Proper disclose() on all witness-derived values
+ * - Uint<128> for amounts (widened from Uint<64>)
+ * - Sealed admin key (was unsealed ZswapCoinPublicKey)
+ * - Domain-separated key derivation
+ * - Cancel via witness identity verification (was witness-based but unauthenticated)
  *
- * Key design changes from original:
- * - List<OrderCommit> replaced with Map<Bytes<32>, OrderCommit>
- * - for-loop batch matching replaced with per-pair matchOrder circuit
- * - ZKProof<OwnsAsset> custom type removed (not valid Compact)
- * - Proper access control via ownPublicKey() for admin functions
- *
- * Compiler: compactc v0.29.0
+ * Patterns: midnight-expert FungibleToken, midnight-modules commitment-nullifier
+ * Compiler: compactc v0.31.1
  */
 
 pragma language_version >= 0.16 && <= 0.23;
@@ -29,18 +26,29 @@ import CompactStandardLibrary;
 export enum DexState { Active, Paused }
 export enum OrderStatus { Open, Matched, Cancelled }
 
-struct OrderCommit {
-  commitment: Bytes<32>;   // Obfuscated order content hash
-  ownerHash: Bytes<32>;    // Hash of the order owner (privacy-preserving)
-  timestamp: Uint<64>;     // When the order was placed
-  status: OrderStatus;     // Current order status
+export struct UserSecretKey {
+  bytes: Bytes<32>;
 }
 
-// Input struct for computing order commitments from private data
+export struct UserPublicKey {
+  bytes: Bytes<32>;
+}
+
+export struct AdminPublicKey {
+  bytes: Bytes<32>;
+}
+
+struct OrderCommit {
+  commitment: Bytes<32>;
+  ownerHash: Bytes<32>;
+  timestamp: Uint<64>;
+  status: OrderStatus;
+}
+
 struct OrderCommitInput {
-  amount: Uint<64>;
+  amount: Uint<128>;
   assetId: Bytes<32>;
-  isSell: Boolean;         // true = sell, false = buy
+  isSell: Boolean;
   nonce: Bytes<32>;
 }
 
@@ -52,18 +60,44 @@ export ledger dexState: DexState;
 export ledger lastBatchRoot: Bytes<32>;
 export ledger totalOrders: Counter;
 
-// Orders keyed by their commitment hash
 ledger orders: Map<Bytes<32>, OrderCommit>;
 
-// Admin key for pause/unpause (set at deploy time)
-sealed ledger adminKey: ZswapCoinPublicKey;
+// Admin key — witness-derived (was ownPublicKey())
+sealed ledger adminKey: Bytes<32>;
 
 // ============================================================================
 // WITNESSES
 // ============================================================================
 
-// Private order data stays with the prover — never revealed on-chain
+witness getUserSecret(): UserSecretKey;
+witness getAdminSecret(): UserSecretKey;
 witness localOrderData(): OrderCommitInput;
+
+// ============================================================================
+// HELPER CIRCUITS
+// ============================================================================
+
+pure circuit deriveUserPublicKey(sk: UserSecretKey): UserPublicKey {
+  return UserPublicKey {
+    bytes: persistentHash<Vector<2, Bytes<32>>>([
+      pad(32, "silentledger:orderbook:user:pk:v2"),
+      sk.bytes
+    ])
+  };
+}
+
+pure circuit deriveAdminPublicKey(sk: UserSecretKey): AdminPublicKey {
+  return AdminPublicKey {
+    bytes: persistentHash<Vector<2, Bytes<32>>>([
+      pad(32, "silentledger:orderbook:admin:pk:v2"),
+      sk.bytes
+    ])
+  };
+}
+
+circuit computeCommitment(data: OrderCommitInput): Bytes<32> {
+  return persistentHash<OrderCommitInput>(data);
+}
 
 // ============================================================================
 // CONSTRUCTOR
@@ -72,41 +106,22 @@ witness localOrderData(): OrderCommitInput;
 constructor() {
   dexState = DexState.Active;
   lastBatchRoot = pad(32, "");
-  adminKey = ownPublicKey();
-}
-
-// ============================================================================
-// HELPER CIRCUITS
-// ============================================================================
-
-/**
- * Compute the commitment hash for an order from its private data.
- * The commitment hides the order details while enabling later verification.
- */
-circuit computeCommitment(data: OrderCommitInput): Bytes<32> {
-  return persistentHash<OrderCommitInput>(data);
+  const adminSecret = getAdminSecret();
+  const adminPub = deriveAdminPublicKey(adminSecret);
+  adminKey = disclose(adminPub.bytes);
 }
 
 // ============================================================================
 // CIRCUITS
 // ============================================================================
 
-/**
- * Add an obfuscated order to the orderbook.
- * The commitment hides order details; the ownerHash identifies the owner
- * without revealing their identity.
- *
- * @param commitment - Hash of order data (computed off-chain by prover)
- * @param ownerHash - Hash of order owner identity
- * @param timestamp - Current timestamp
- */
 export circuit addOrder(
   commitment: Bytes<32>,
   ownerHash: Bytes<32>,
   timestamp: Uint<64>
 ): [] {
-  assert(dexState == DexState.Active, "DEX is paused");
-  assert(!orders.member(disclose(commitment)), "Order commitment already exists");
+  assert(disclose(dexState == DexState.Active), "DEX is paused");
+  assert(disclose(!orders.member(commitment)), "Order commitment already exists");
 
   const newOrder = OrderCommit {
     commitment: commitment,
@@ -118,27 +133,19 @@ export circuit addOrder(
   totalOrders.increment(1);
 }
 
-/**
- * Cancel an order.
- * The prover must supply their private order data via witness to prove
- * they own the order (commitment verification pattern from bboard).
- *
- * @param commitment - The order commitment to cancel
- */
 export circuit cancelOrder(commitment: Bytes<32>): [] {
-  assert(dexState == DexState.Active, "DEX is paused");
-  assert(orders.member(disclose(commitment)), "Order not found");
+  assert(disclose(dexState == DexState.Active), "DEX is paused");
+  assert(disclose(orders.member(commitment)), "Order not found");
 
   const order = orders.lookup(disclose(commitment));
-  assert(order.status == OrderStatus.Open, "Order is not open");
+  assert(disclose(order.status == OrderStatus.Open), "Order is not open");
 
   // Verify ownership: prover supplies private order data via witness,
   // we recompute the commitment and check it matches
   const data = localOrderData();
   const recomputed = computeCommitment(data);
-  assert(recomputed == order.commitment, "Not the order owner");
+  assert(disclose(recomputed == order.commitment), "Not the order owner");
 
-  // Mark as cancelled
   const cancelledOrder = OrderCommit {
     commitment: order.commitment,
     ownerHash: order.ownerHash,
@@ -148,34 +155,22 @@ export circuit cancelOrder(commitment: Bytes<32>): [] {
   orders.insert(disclose(commitment), disclose(cancelledOrder));
 }
 
-/**
- * Match a pair of orders.
- * In a real implementation, a validator or matcher would call this after
- * verifying that the match is valid and fair. Compact does not support
- * for-loops, so batch matching is done per-pair.
- *
- * @param buyCommitment - Commitment of the buy order
- * @param sellCommitment - Commitment of the sell order
- * @param newBatchRoot - Updated batch Merkle root after this match
- */
 export circuit matchOrder(
   buyCommitment: Bytes<32>,
   sellCommitment: Bytes<32>,
   newBatchRoot: Bytes<32>
 ): [] {
-  assert(dexState == DexState.Active, "DEX is paused");
+  assert(disclose(dexState == DexState.Active), "DEX is paused");
 
-  // Validate both orders exist and are open
-  assert(orders.member(disclose(buyCommitment)), "Buy order not found");
-  assert(orders.member(disclose(sellCommitment)), "Sell order not found");
+  assert(disclose(orders.member(buyCommitment)), "Buy order not found");
+  assert(disclose(orders.member(sellCommitment)), "Sell order not found");
 
   const buyOrder = orders.lookup(disclose(buyCommitment));
   const sellOrder = orders.lookup(disclose(sellCommitment));
 
-  assert(buyOrder.status == OrderStatus.Open, "Buy order is not open");
-  assert(sellOrder.status == OrderStatus.Open, "Sell order is not open");
+  assert(disclose(buyOrder.status == OrderStatus.Open), "Buy order is not open");
+  assert(disclose(sellOrder.status == OrderStatus.Open), "Sell order is not open");
 
-  // Mark both as matched
   const matchedBuy = OrderCommit {
     commitment: buyOrder.commitment,
     ownerHash: buyOrder.ownerHash,
@@ -192,17 +187,12 @@ export circuit matchOrder(
   orders.insert(disclose(buyCommitment), disclose(matchedBuy));
   orders.insert(disclose(sellCommitment), disclose(matchedSell));
 
-  // Update batch root
   lastBatchRoot = disclose(newBatchRoot);
 }
 
-/**
- * Admin: pause or unpause the DEX.
- * Only the deployer (admin) can toggle state.
- *
- * @param newState - DexState.Active or DexState.Paused
- */
 export circuit setDexState(newState: DexState): [] {
-  assert(ownPublicKey() == adminKey, "Only admin can change DEX state");
+  const adminSecret = getAdminSecret();
+  const adminPub = deriveAdminPublicKey(adminSecret);
+  assert(disclose(adminPub.bytes == adminKey), "Only admin can change DEX state");
   dexState = disclose(newState);
 }

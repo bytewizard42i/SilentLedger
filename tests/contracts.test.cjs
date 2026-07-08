@@ -3,7 +3,7 @@ const path = require('path');
 
 runStructuralTests('AssetVerification', path.join(__dirname, '..', 'build', 'AssetVerification', 'contract', 'index.d.ts'), {
   expected: ['checkVerification', 'revokeVerification', 'verifyOwnership'],
-  mustHave: ['verifyOwnership', 'checkVerification'],
+  mustHave: ['verifyOwnership', 'checkVerification', 'revokeVerification'],
 });
 
 runStructuralTests('ObfuscatedOrderbook', path.join(__dirname, '..', 'build', 'ObfuscatedOrderbook', 'contract', 'index.d.ts'), {
